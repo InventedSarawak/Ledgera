@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/inventedsarawak/go-boilerplate/internal/config"
+	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/zerologWriter"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"

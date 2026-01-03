@@ -8,8 +8,8 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2"
 	clerkhttp "github.com/clerk/clerk-sdk-go/v2/http"
 	"github.com/labstack/echo/v4"
-	"github.com/inventedsarawak/go-boilerplate/internal/errs"
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/errs"
+	"github.com/inventedsarawak/ledgera/internal/server"
 )
 
 type AuthMiddleware struct {

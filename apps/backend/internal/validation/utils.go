@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-	"github.com/inventedsarawak/go-boilerplate/internal/errs"
+	"github.com/inventedsarawak/ledgera/internal/errs"
 )
 
 type Validatable interface {

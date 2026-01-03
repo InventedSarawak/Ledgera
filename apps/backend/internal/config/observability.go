@@ -35,7 +35,7 @@ type HealthChecksConfig struct {
 
 func DefaultObservabilityConfig() *ObservabilityConfig {
 	return &ObservabilityConfig{
-		ServiceName: "boilerplate",
+		ServiceName: "ledgera",
 		Environment: "development",
 		Logging: LoggingConfig{
 			Level:              "info",
@@ -95,4 +95,3 @@ func (c *ObservabilityConfig) GetLogLevel() string {
 func (c *ObservabilityConfig) IsProduction() bool {
 	return c.Environment == "production"
 }
- 

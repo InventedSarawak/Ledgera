@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/inventedsarawak/go-boilerplate/internal/handler"
+	"github.com/inventedsarawak/ledgera/internal/handler"
 
 	"github.com/labstack/echo/v4"
 )

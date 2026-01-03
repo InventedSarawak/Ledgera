@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/inventedsarawak/go-boilerplate/internal/lib/job"
-	"github.com/inventedsarawak/go-boilerplate/internal/repository"
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/lib/job"
+	"github.com/inventedsarawak/ledgera/internal/repository"
+	"github.com/inventedsarawak/ledgera/internal/server"
 )
 
 type Services struct {

@@ -19,6 +19,7 @@ type Config struct {
 	Auth          AuthConfig           `koanf:"auth" validate:"required"`
 	Integration   IntegrationConfig    `koanf:"integration" validate:"required"`
 	Observability *ObservabilityConfig `koanf:"observability"`
+	Blockhain     BlockchainConfig    `koanf:"blockchain" validate:"required"`
 }
 
 type Primary struct {
@@ -46,6 +47,13 @@ type DatabaseConfig struct {
 	ConnMaxIdleTime int    `koanf:"conn_max_idle_time" validate:"required"`
 }
 
+type BlockchainConfig struct {
+    RpcUrl          string `koanf:"rpc_url" validate:"required,url"`
+    ChainID         int    `koanf:"chain_id" validate:"required"`
+    FactoryAddress  string `koanf:"factory_address" validate:"required"`
+    AdminPrivateKey string `koanf:"admin_private_key" validate:"required"`
+}
+
 type RedisConfig struct {
 	Address string `koanf:"address" validate:"required"`
 }
@@ -61,8 +69,8 @@ func LoadConfig() (*Config, error) {
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 	k := koanf.New(".")
 
-	err := k.Load(env.Provider("BOILERPLATE_", ".", func(s string) string {
-		return strings.ToLower((strings.TrimPrefix(s, "BOILERPLATE_")))
+	err := k.Load(env.Provider("LEDGERA_", ".", func(s string) string {
+		return strings.ToLower((strings.TrimPrefix(s, "LEDGERA_")))
 	}), nil)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load configuration from environment variables")
@@ -85,7 +93,7 @@ func LoadConfig() (*Config, error) {
 		mainConfig.Observability = DefaultObservabilityConfig()
 	}
 
-	mainConfig.Observability.ServiceName = "boilerplate"
+	mainConfig.Observability.ServiceName = "ledgera"
 	mainConfig.Observability.Environment = mainConfig.Primary.Env
 
 	if err := mainConfig.Observability.Validate(); err != nil {

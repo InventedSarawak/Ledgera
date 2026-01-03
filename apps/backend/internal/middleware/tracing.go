@@ -6,7 +6,7 @@ import (
 	"github.com/newrelic/go-agent/v3/integrations/nrpkgerrors"
 	"github.com/newrelic/go-agent/v3/newrelic"
 
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/server"
 )
 
 type TracingMiddleware struct {

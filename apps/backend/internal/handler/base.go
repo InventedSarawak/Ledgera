@@ -6,9 +6,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/newrelic/go-agent/v3/integrations/nrpkgerrors"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/inventedsarawak/go-boilerplate/internal/middleware"
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
-	"github.com/inventedsarawak/go-boilerplate/internal/validation"
+	"github.com/inventedsarawak/ledgera/internal/middleware"
+	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/validation"
 )
 
 // Handler provides base functionality for all handlers

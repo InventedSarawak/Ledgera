@@ -22,11 +22,11 @@ export const WelcomeEmail = ({ userFirstName = '{{.UserFirstName}}' }: WelcomeEm
     return (
         <Html>
             <Head />
-            <Preview>Welcome to Boilerplate</Preview>
+            <Preview>Welcome to Ledgera</Preview>
             <Tailwind>
                 <Body className="bg-gray-100 font-sans">
                     <Container className="bg-white p-8 rounded-lg shadow-sm my-10 mx-auto max-w-[600px]">
-                        <Heading className="text-2xl font-bold text-gray-800 mt-4">Welcome to Boilerplate!</Heading>
+                        <Heading className="text-2xl font-bold text-gray-800 mt-4">Welcome to Ledgera!</Heading>
 
                         <Section>
                             <Text className="text-gray-700 text-base">Hi {userFirstName},</Text>

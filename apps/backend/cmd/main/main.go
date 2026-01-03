@@ -8,14 +8,14 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/inventedsarawak/go-boilerplate/internal/config"
-	"github.com/inventedsarawak/go-boilerplate/internal/database"
-	"github.com/inventedsarawak/go-boilerplate/internal/handler"
-	"github.com/inventedsarawak/go-boilerplate/internal/logger"
-	"github.com/inventedsarawak/go-boilerplate/internal/repository"
-	"github.com/inventedsarawak/go-boilerplate/internal/router"
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
-	"github.com/inventedsarawak/go-boilerplate/internal/service"
+	"github.com/inventedsarawak/ledgera/internal/config"
+	"github.com/inventedsarawak/ledgera/internal/database"
+	"github.com/inventedsarawak/ledgera/internal/handler"
+	"github.com/inventedsarawak/ledgera/internal/logger"
+	"github.com/inventedsarawak/ledgera/internal/repository"
+	"github.com/inventedsarawak/ledgera/internal/router"
+	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/service"
 )
 
 const DefaultContextTimeout = 30

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/server"
 
 	"github.com/labstack/echo/v4"
 )

@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/inventedsarawak/go-boilerplate/internal/server"
+import "github.com/inventedsarawak/ledgera/internal/server"
 
 type Repositories struct{}
 

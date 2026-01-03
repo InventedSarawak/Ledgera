@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/inventedsarawak/go-boilerplate/internal/config"
-	loggerConfig "github.com/inventedsarawak/go-boilerplate/internal/logger"
+	"github.com/inventedsarawak/ledgera/internal/config"
+	loggerConfig "github.com/inventedsarawak/ledgera/internal/logger"
 	pgxzero "github.com/jackc/pgx-zerolog"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

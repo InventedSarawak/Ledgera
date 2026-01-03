@@ -32,8 +32,8 @@ export const OpenAPI = Object.assign(
             openapi: '3.0.2',
             info: {
                 version: '1.0.0',
-                title: 'Boilerplate REST API - Documentation',
-                description: 'Boilerplate REST API - Documentation'
+                title: 'Ledgera REST API - Documentation',
+                description: 'Ledgera REST API - Documentation'
             },
             servers: [
                 {

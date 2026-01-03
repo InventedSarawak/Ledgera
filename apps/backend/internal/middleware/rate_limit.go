@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/server"
 )
 
 type RateLimitMiddleware struct {

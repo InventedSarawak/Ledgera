@@ -3,10 +3,10 @@ package testing
 import (
 	"time"
 
+	"github.com/inventedsarawak/ledgera/internal/config"
+	"github.com/inventedsarawak/ledgera/internal/database"
+	"github.com/inventedsarawak/ledgera/internal/server"
 	"github.com/rs/zerolog"
-	"github.com/inventedsarawak/go-boilerplate/internal/config"
-	"github.com/inventedsarawak/go-boilerplate/internal/database"
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
 )
 
 // CreateTestServer creates a server instance for testing

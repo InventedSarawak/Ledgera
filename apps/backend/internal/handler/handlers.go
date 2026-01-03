@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
-	"github.com/inventedsarawak/go-boilerplate/internal/service"
+	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/service"
 )
 
 type Handlers struct {

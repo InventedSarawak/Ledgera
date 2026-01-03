@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/server"
 
 	"github.com/clerk/clerk-sdk-go/v2"
 )

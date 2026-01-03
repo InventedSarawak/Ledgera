@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/inventedsarawak/ledgera/internal/server"
 	"github.com/rs/zerolog"
-	"github.com/inventedsarawak/go-boilerplate/internal/server"
 	"github.com/stretchr/testify/require"
 )
 
