@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrredis-v9"
-	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog"
+	"github.com/inventedsarawak/ledgera/internal/blockchain"
 	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/inventedsarawak/ledgera/internal/database"
 	"github.com/inventedsarawak/ledgera/internal/lib/job"
 	loggerPkg "github.com/inventedsarawak/ledgera/internal/logger"
+	"github.com/newrelic/go-agent/v3/integrations/nrredis-v9"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 )
 
 type Server struct {
@@ -22,6 +23,7 @@ type Server struct {
 	LoggerService *loggerPkg.LoggerService
 	DB            *database.Database
 	Redis         *redis.Client
+	Blockchain    *blockchain.Client
 	httpServer    *http.Server
 	Job           *job.JobService
 }
@@ -60,12 +62,20 @@ func New(cfg *config.Config, logger *zerolog.Logger, loggerService *loggerPkg.Lo
 		return nil, err
 	}
 
+	// Initialize blockchain client
+	blockchainClient, err := blockchain.NewClient(cfg.Blockhain)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to initialize blockchain client, continuing without blockchain")
+		// Don't fail startup if blockchain is unavailable
+	}
+
 	server := &Server{
 		Config:        cfg,
 		Logger:        logger,
 		LoggerService: loggerService,
 		DB:            db,
 		Redis:         redisClient,
+		Blockchain:    blockchainClient,
 		Job:           jobService,
 	}
 

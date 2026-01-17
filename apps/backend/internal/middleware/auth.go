@@ -42,8 +42,10 @@ func (auth *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc 
 					auth.server.Logger.Error().Err(err).Str("function", "RequireAuth").Dur(
 						"duration", time.Since(start)).Msg("failed to write JSON response")
 				} else {
-					auth.server.Logger.Error().Str("function", "RequireAuth").Dur("duration", time.Since(start)).Msg(
-						"could not get session claims from context")
+					auth.server.Logger.Error().
+						Str("function", "RequireAuth").
+						Dur("duration", time.Since(start)).
+						Msg("could not get session claims from context")
 				}
 			}))))(func(c echo.Context) error {
 		start := time.Now()

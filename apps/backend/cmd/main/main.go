@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/inventedsarawak/ledgera/internal/database"
 	"github.com/inventedsarawak/ledgera/internal/handler"
@@ -25,6 +26,9 @@ func main() {
 	if err != nil {
 		panic("failed to load config: " + err.Error())
 	}
+
+	// Initialize Clerk API key early (before any middleware)
+	clerk.SetKey(cfg.Auth.SecretKey)
 
 	// Initialize New Relic logger service
 	loggerService := logger.NewLoggerService(cfg.Observability)

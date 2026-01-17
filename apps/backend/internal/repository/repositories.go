@@ -2,8 +2,12 @@ package repository
 
 import "github.com/inventedsarawak/ledgera/internal/server"
 
-type Repositories struct{}
+type Repositories struct{
+	Counter *CounterRepository
+}
 
 func NewRepositories(s *server.Server) *Repositories {
-	return &Repositories{}
+	return &Repositories{
+		Counter: NewCounterRepository(s),
+	}
 }

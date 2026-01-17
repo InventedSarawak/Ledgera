@@ -21,7 +21,7 @@ tasks:
     run:
         desc: run the cmd/ledgera application
         cmds:
-            - go run ./cmd/ledgera
+            - go run ./cmd/main
 
     migrations:new:
         desc: create a new database migration

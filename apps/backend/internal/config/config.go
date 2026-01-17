@@ -19,7 +19,7 @@ type Config struct {
 	Auth          AuthConfig           `koanf:"auth" validate:"required"`
 	Integration   IntegrationConfig    `koanf:"integration" validate:"required"`
 	Observability *ObservabilityConfig `koanf:"observability"`
-	Blockhain     BlockchainConfig    `koanf:"blockchain" validate:"required"`
+	Blockhain     BlockchainConfig     `koanf:"blockchain" validate:"required"`
 }
 
 type Primary struct {
@@ -48,10 +48,11 @@ type DatabaseConfig struct {
 }
 
 type BlockchainConfig struct {
-    RpcUrl          string `koanf:"rpc_url" validate:"required,url"`
-    ChainID         int    `koanf:"chain_id" validate:"required"`
-    FactoryAddress  string `koanf:"factory_address" validate:"required"`
-    AdminPrivateKey string `koanf:"admin_private_key" validate:"required"`
+	RpcUrl          string `koanf:"rpc_url" validate:"required,url"`
+	ChainID         int    `koanf:"chain_id" validate:"required"`
+	FactoryAddress  string `koanf:"factory_address" validate:"required"`
+	CounterAddress  string `koanf:"counter_address" validate:"required"`
+	AdminPrivateKey string `koanf:"admin_private_key" validate:"required"`
 }
 
 type RedisConfig struct {
