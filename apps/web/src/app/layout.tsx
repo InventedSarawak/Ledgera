@@ -27,13 +27,13 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                                <ClerkProvider>
-                                    <ReactQueryProvider>
-                                        {/* Auth navigation bar */}
-                                        {require('@/components/AuthNav').default()}
-                                        {children}
-                                    </ReactQueryProvider>
-                                </ClerkProvider>
+                <ClerkProvider>
+                    <ReactQueryProvider>
+                        {/* Auth navigation bar */}
+                        {require('@/components/AuthNav').default()}
+                        {children}
+                    </ReactQueryProvider>
+                </ClerkProvider>
             </body>
         </html>
     )
