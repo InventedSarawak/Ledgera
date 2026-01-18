@@ -5,13 +5,12 @@ import { useAuth } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { API_BASE_URL } from '@/lib/constants'
 
 type Counter = {
     id: string
     count: number
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 export default function CounterComponent() {
     const queryClient = useQueryClient()

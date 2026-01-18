@@ -15,9 +15,9 @@ type CounterService struct {
 	counterRepo *repository.CounterRepository
 }
 
-func NewCounterService(server *server.Server, counterRepo *repository.CounterRepository) *CounterService {
+func NewCounterService(s *server.Server, counterRepo *repository.CounterRepository) *CounterService {
 	return &CounterService{
-		server:      server,
+		server:      s,
 		counterRepo: counterRepo,
 	}
 }

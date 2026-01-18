@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import ReactQueryProvider from './ReactQueryProvider'
-import ClerkProvider from './ClerkProvider'
+import ReactQueryProvider from '../providers/ReactQueryProvider'
+import ClerkProviderWrapper from '../providers/ClerkProvider'
 import AuthNav from '@/components/AuthNav'
 
 const geistSans = Geist({
@@ -28,13 +28,13 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                <ClerkProvider>
+                <ClerkProviderWrapper>
                     <ReactQueryProvider>
                         {/* Auth navigation bar */}
                         <AuthNav />
                         {children}
                     </ReactQueryProvider>
-                </ClerkProvider>
+                </ClerkProviderWrapper>
             </body>
         </html>
     )

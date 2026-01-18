@@ -3,13 +3,13 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/inventedsarawak/ledgera/internal/errs"
+	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/sqlerr"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/inventedsarawak/ledgera/internal/errs"
-	"github.com/inventedsarawak/ledgera/internal/server"
-	"github.com/inventedsarawak/ledgera/internal/sqlerr"
 )
 
 type GlobalMiddlewares struct {
@@ -159,6 +159,7 @@ func (global *GlobalMiddlewares) GlobalErrorHandler(err error, c echo.Context) {
 		Err(originalErr).
 		Int("status", status).
 		Str("error_code", code).
+		Str("path", c.Request().URL.Path).
 		Msg(message)
 
 	if !c.Response().Committed {
