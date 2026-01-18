@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import ReactQueryProvider from './ReactQueryProvider'
 import ClerkProvider from './ClerkProvider'
+import AuthNav from '@/components/AuthNav'
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -30,7 +31,7 @@ export default function RootLayout({
                 <ClerkProvider>
                     <ReactQueryProvider>
                         {/* Auth navigation bar */}
-                        {require('@/components/AuthNav').default()}
+                        <AuthNav />
                         {children}
                     </ReactQueryProvider>
                 </ClerkProvider>
