@@ -23,7 +23,7 @@ func NewAuthMiddleware(s *server.Server) *AuthMiddleware {
 }
 
 func (auth *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
-	return echo.WrapMiddleware(
+	clerkMiddleware := echo.WrapMiddleware(
 		clerkhttp.WithHeaderAuthorization(
 			clerkhttp.AuthorizationFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				start := time.Now()
@@ -73,4 +73,41 @@ func (auth *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc 
 
 		return next(c)
 	})
+
+	return func(c echo.Context) error {
+		start := time.Now()
+		
+		// CHECK: Are we in Development Mode?
+		// We access the config via the server struct
+		isDev := auth.server.Config.Primary.Env == "local"
+
+		// CHECK: Is the bypass header present?
+		bypassHeader := c.Request().Header.Get("X-Test-Auth")
+
+		if isDev && bypassHeader == "bypass" {
+			// --- BYPASS PATH ---
+			mockUserID := auth.server.Config.Auth.MockUserID
+			if mockUserID == "" {
+				mockUserID = "user_test_mock_123"
+			}
+			
+			// Inject Mock Data (Simulating what Clerk would provide)
+			c.Set("user_id", mockUserID)
+			c.Set("user_role", "org:admin")
+			// Add any specific permissions you need for testing
+			c.Set("permissions", []string{"org:admin:permission"})
+
+			auth.server.Logger.Info().
+				Str("function", "RequireAuth").
+				Str("user_id", mockUserID).
+				Str("request_id", GetRequestID(c)).
+				Dur("duration", time.Since(start)).
+				Msg("BYPASSING AUTH: Using Mock User")
+
+			// Skip Clerk and go directly to your handler
+			return next(c)
+		}
+
+		return clerkMiddleware(c)
+	}
 }

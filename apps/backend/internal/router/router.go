@@ -17,6 +17,7 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 	middlewares := middleware.NewMiddlewares(s)
 
 	router := echo.New()
+	router.Pre(echoMiddleware.RemoveTrailingSlash())
 
 	router.HTTPErrorHandler = middlewares.Global.GlobalErrorHandler
 
@@ -56,7 +57,13 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 	registerSystemRoutes(router, h)
 
 	// register versioned routes
+	// return welcome to API message at root
+	
 	v1Router := router.Group("/api/v1")
+	// Welcome message behind the auth middleware
+	v1Router.GET("/", middlewares.Auth.RequireAuth(func(c echo.Context) error {
+		return c.String(http.StatusOK, "Welcome to Ledgera API")
+	}))
 	v1.RegisterCounterRoutes(v1Router, h.Counter, middlewares.Auth)
 
 	return router

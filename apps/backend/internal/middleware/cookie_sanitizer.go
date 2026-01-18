@@ -16,12 +16,13 @@ func SanitizeCookies() echo.MiddlewareFunc {
 			cookieHeader := req.Header.Get("Cookie")
 
 			if cookieHeader != "" {
-				// Check if the cookie contains invalid characters
-				if containsInvalidChars(cookieHeader) {
+				sanitized := sanitizeCookieHeader(cookieHeader)
+				if sanitized == "" {
 					req.Header.Del("Cookie")
+				} else {
+					req.Header.Set("Cookie", sanitized)
 				}
 			}
-
 			return next(c)
 		}
 	}

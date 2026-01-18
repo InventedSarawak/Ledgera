@@ -60,6 +60,7 @@ type RedisConfig struct {
 }
 type AuthConfig struct {
 	SecretKey string `koanf:"secret_key" validate:"required"`
+	MockUserID string `koanf:"mock_user_id"`
 }
 
 type IntegrationConfig struct {
