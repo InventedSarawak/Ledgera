@@ -1,0 +1,23 @@
+echo "🔍 Running pre-commit checks..."
+
+# 1. Branch naming convention
+branch="$(git rev-parse --abbrev-ref HEAD)"
+branchRegex='^(main|prod|(feat|fix|chore|docs|refactor|test)/[a-z0-9._-]+)$'
+
+if ! echo "$branch" | grep -Eq "$branchRegex"; then
+  echo "   Branch name '$branch' does not follow convention!"
+  echo "   Allowed: main, feat/*, fix/*, chore/*, docs/*, refactor/*, test/*"
+  exit 1
+fi
+echo "  Branch naming check passed."
+
+echo "   Running npm scripts..."
+# npm run lint && npm run format && npm run test
+npm run lint && npm run format:check
+if [ $? -ne 0 ]; then
+  echo "   Lint/Format/Test failed. Fix issues before committing."
+  exit 1
+fi
+echo "  Code quality checks passed."
+
+echo "  All pre-commit checks passed!"
