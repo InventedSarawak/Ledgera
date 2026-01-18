@@ -4,6 +4,24 @@ import tsparser from '@typescript-eslint/parser'
 import prettier from 'eslint-plugin-prettier'
 
 export default [
+    {
+        ignores: [
+            'node_modules/**',
+            '**/node_modules/**',
+            'dist/**',
+            '**/dist/**',
+            'build/**',
+            '**/build/**',
+            '.turbo/**',
+            '**/.turbo/**',
+            '.next/**',
+            '**/.next/**',
+            'out/**',
+            '**/out/**',
+            '**/*.config.js',
+            '**/webpack/**/*.js'
+        ]
+    },
     js.configs.recommended,
     {
         files: ['**/*.ts', '**/*.tsx'],

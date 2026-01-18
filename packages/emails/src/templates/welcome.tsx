@@ -8,7 +8,7 @@ import {
     Html,
     Link,
     Preview,
-    Img,
+    // Img,
     Section,
     Text,
     Tailwind
@@ -25,7 +25,7 @@ export const WelcomeEmail = ({ userFirstName = '{{.UserFirstName}}' }: WelcomeEm
             <Preview>Welcome to Ledgera</Preview>
             <Tailwind>
                 <Body className="bg-gray-100 font-sans">
-                    <Container className="bg-white p-8 rounded-lg shadow-sm my-10 mx-auto max-w-[600px]">
+                    <Container className="bg-white p-8 rounded-lg shadow-sm my-10 mx-auto max-w-150">
                         <Heading className="text-2xl font-bold text-gray-800 mt-4">Welcome to Ledgera!</Heading>
 
                         <Section>

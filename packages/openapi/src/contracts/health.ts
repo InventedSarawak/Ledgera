@@ -1,7 +1,7 @@
 import { initContract } from '@ts-rest/core'
-import { z } from 'zod'
+// import { z } from 'zod'
 import { ZHealthResponse } from '@zod/health'
-import { getSecurityMetadata } from '@/utils'
+// import { getSecurityMetadata } from '@/utils'
 
 const c = initContract()
 
