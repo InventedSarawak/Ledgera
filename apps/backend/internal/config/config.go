@@ -19,6 +19,7 @@ type Config struct {
 	Auth          AuthConfig           `koanf:"auth" validate:"required"`
 	Integration   IntegrationConfig    `koanf:"integration" validate:"required"`
 	Observability *ObservabilityConfig `koanf:"observability"`
+	StorageBucket StorageBucketConfig  `koanf:"storage_bucket" validate:"required"`
 	Blockhain     BlockchainConfig     `koanf:"blockchain" validate:"required"`
 }
 
@@ -45,6 +46,16 @@ type DatabaseConfig struct {
 	MaxIdleConns    int    `koanf:"max_idle_conns" validate:"required"`
 	ConnMaxLifetime int    `koanf:"conn_max_lifetime" validate:"required"`
 	ConnMaxIdleTime int    `koanf:"conn_max_idle_time" validate:"required"`
+}
+
+type StorageBucketConfig struct {
+	Endpoint   string `koanf:"endpoint" validate:"required,url"`
+	AccessKey  string `koanf:"access_key" validate:"required"`
+	SecretKey  string `koanf:"secret_key" validate:"required"`
+	BucketName string `koanf:"bucket_name" validate:"required"`
+	PublicURL  string `koanf:"public_url" validate:"required,url"`
+	AccountID  string `koanf:"account_id" validate:"required"`
+	Token      string `koanf:"token" validate:"required"`
 }
 
 type BlockchainConfig struct {
