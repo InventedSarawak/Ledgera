@@ -1,4 +1,5 @@
 import fs from 'fs'
+import pino from 'pino'
 
 import { OpenAPI } from './index'
 
@@ -16,11 +17,15 @@ const formattedDoc = JSON.parse(filteredDoc)
 
 const filePaths = ['./openapi.json', '../../apps/backend/static/openapi.json']
 
+const logger = pino({
+    name: 'openapi-gen',
+    level: 'info'
+})
+
 filePaths.forEach((filePath) => {
     fs.writeFile(filePath, JSON.stringify(formattedDoc, null, 2), (err) => {
         if (err) {
-            // eslint-disable-next-line no-console
-            globalThis.console.error(`Error writing to ${filePath}:`, err)
+            logger.error({ err }, `Error writing to ${filePath}`)
         }
     })
 })
