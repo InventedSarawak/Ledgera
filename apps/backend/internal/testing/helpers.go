@@ -6,13 +6,18 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/inventedsarawak/ledgera/internal/handler"
+	"github.com/inventedsarawak/ledgera/internal/repository"
+	"github.com/inventedsarawak/ledgera/internal/router"
 	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/service"
+	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
 // SetupTest prepares a test environment with a database and server
-func SetupTest(t *testing.T) (*TestDB, *server.Server, func()) {
+func SetupTest(t *testing.T) (*TestDB, *server.Server, *echo.Echo, func()) {
 	t.Helper()
 
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
@@ -25,6 +30,14 @@ func SetupTest(t *testing.T) (*TestDB, *server.Server, func()) {
 
 	testServer := CreateTestServer(&logger, testDB)
 
+	// Initialize the application stack
+	repos := repository.NewRepositories(testServer)
+	services, err := service.NewServices(testServer, repos)
+	require.NoError(t, err)
+
+	handlers := handler.NewHandlers(testServer, services)
+	r := router.NewRouter(testServer, handlers, services)
+
 	cleanup := func() {
 		if testDB.Pool != nil {
 			testDB.Pool.Close()
@@ -33,7 +46,7 @@ func SetupTest(t *testing.T) (*TestDB, *server.Server, func()) {
 		dbCleanup()
 	}
 
-	return testDB, testServer, cleanup
+	return testDB, testServer, r, cleanup
 }
 
 // MustMarshalJSON marshals an object to JSON or fails the test

@@ -64,7 +64,6 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 		return c.String(http.StatusOK, "Welcome to Ledgera API")
 	}))
 
-	v1.RegisterCounterRoutes(v1Router, h.Counter, middlewares.Auth)
 	v1.RegisterAuthRoutes(v1Router, h.Auth, middlewares.Auth)
 	
 	return router

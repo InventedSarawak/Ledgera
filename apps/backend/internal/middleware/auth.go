@@ -76,12 +76,13 @@ func (auth *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc 
 
 	return func(c echo.Context) error {
 		start := time.Now()
-		
+
 		// CHECK: Are we in Development Mode?
 		// We access the config via the server struct
-		isDev := auth.server.Config.Primary.Env == "local"
+		isDev := auth.server.Config.Primary.Env == "local" || auth.server.Config.Primary.Env == "test"
 
 		// CHECK: Is the bypass header present?
+
 		bypassHeader := c.Request().Header.Get("X-Test-Auth")
 
 		if isDev && bypassHeader == "bypass" {
@@ -90,7 +91,7 @@ func (auth *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc 
 			if mockUserID == "" {
 				mockUserID = "user_test_mock_123"
 			}
-			
+
 			// Inject Mock Data (Simulating what Clerk would provide)
 			c.Set("user_id", mockUserID)
 			c.Set("user_role", "org:admin")

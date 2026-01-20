@@ -5,7 +5,9 @@
       "get": {
         "description": "Get health status",
         "summary": "Get health",
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "parameters": [],
         "operationId": "getHealth",
         "responses": {
@@ -18,7 +20,10 @@
                   "properties": {
                     "status": {
                       "type": "string",
-                      "enum": ["healthy", "unhealthy"]
+                      "enum": [
+                        "healthy",
+                        "unhealthy"
+                      ]
                     },
                     "timestamp": {
                       "type": "string",
@@ -43,7 +48,10 @@
                               "type": "string"
                             }
                           },
-                          "required": ["status", "response_time"]
+                          "required": [
+                            "status",
+                            "response_time"
+                          ]
                         },
                         "redis": {
                           "type": "object",
@@ -58,18 +66,114 @@
                               "type": "string"
                             }
                           },
-                          "required": ["status", "response_time"]
+                          "required": [
+                            "status",
+                            "response_time"
+                          ]
                         }
                       },
-                      "required": ["database"]
+                      "required": [
+                        "database"
+                      ]
                     }
                   },
-                  "required": ["status", "timestamp", "environment", "checks"]
+                  "required": [
+                    "status",
+                    "timestamp",
+                    "environment",
+                    "checks"
+                  ]
                 }
               }
             }
           }
         }
+      }
+    },
+    "/auth/sync-user": {
+      "post": {
+        "description": "Sync user data from Clerk to local database",
+        "summary": "Sync User",
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [],
+        "operationId": "syncUser",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clerkId": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "walletAddress": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "ADMIN",
+                        "SUPPLIER",
+                        "BUYER"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "clerkId",
+                    "email",
+                    "role",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     }
   },

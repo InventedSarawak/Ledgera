@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
+	// "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/inventedsarawak/ledgera/internal/config"
@@ -15,7 +15,6 @@ import (
 type Client struct {
 	Eth             *ethclient.Client
 	Cfg             config.BlockchainConfig
-	CounterContract *Counter
 	privateKey      *ecdsa.PrivateKey
 }
 
@@ -31,17 +30,12 @@ func NewClient(cfg config.BlockchainConfig) (*Client, error) {
 		return nil, err
 	}
 
-	// Load Counter contract
-	counterAddress := common.HexToAddress(cfg.CounterAddress)
-	counterContract, err := NewCounter(counterAddress, client)
-	if err != nil {
-		return nil, err
-	}
+	// Load Contract Here
+	
 
 	return &Client{
 		Eth:             client,
 		Cfg:             cfg,
-		CounterContract: counterContract,
 		privateKey:      privateKey,
 	}, nil
 }

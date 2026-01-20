@@ -1,10 +1,10 @@
 import { initContract } from '@ts-rest/core'
 import { healthContract } from './health'
-import { counterContract } from './counter'
+import { authContract } from './auth'
 
 const c = initContract()
 
 export const apiContract = c.router({
     Health: healthContract,
-    Counter: counterContract
+    Auth: authContract
 })

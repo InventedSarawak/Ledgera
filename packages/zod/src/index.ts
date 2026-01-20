@@ -5,4 +5,4 @@ extendZodWithOpenApi(z)
 
 export * from './utils'
 export * from './health'
-export * from './counter'
+export * from './user'
