@@ -34,13 +34,6 @@ export default function Navbar() {
                                 {link.name}
                             </Link>
                         ))}
-                        <SignedIn>
-                            <Link
-                                href="/dashboard"
-                                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900">
-                                Dashboard
-                            </Link>
-                        </SignedIn>
                     </div>
 
                     {/* Desktop Auth Buttons */}

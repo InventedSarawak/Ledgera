@@ -73,6 +73,14 @@ Follow the strict **3-Layer Architecture**:
     -   Use strict typing for Props.
 -   **Auth**: Integrate with Clerk for user management.
 
+### Dashboard Layout Strategy (New)
+-   **Reference**: Use the official Shadcn Dashboard Sidebar pattern (similar to `https://ui.shadcn.com/examples/dashboard`).
+-   **Sidebar Requirements**:
+    -   **Navigation Only**: The sidebar should contain the main navigation links (Dashboard, Projects, Analytics, Settings).
+    -   **No Profile Section**: Remove the user profile/avatar section from the sidebar bottom (this belongs in the top Navbar).
+    -   **Collapsible**: Implement a `SidebarTrigger` or Toggle button that allows the user to collapse/hide the sidebar for a focused view.
+    -   **Responsive**: On mobile, the sidebar must function as a Sheet/Drawer.
+
 ---
 
 ## 🟡 Smart Contract Guidelines (Solidity)
@@ -89,22 +97,3 @@ Follow the strict **3-Layer Architecture**:
     -   Write integration tests for Handlers using `internal/testing` helpers.
     -   Mock external services (S3, Blockchain) where necessary.
 -   **Coverage**: Focus on critical business paths (Payment, Tokenization, Auth).
-
-## 📝 Example Patterns
-
-### Handler Example
-```go
-func (h *Handler) CreateItem(c echo.Context) error {
-    var req model.CreateItemDTO
-    if err := c.Bind(&req); err != nil {
-        return echo.NewHTTPError(http.StatusBadRequest, "Invalid inputs")
-    }
-    if err := req.Validate(); err != nil {
-        return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-    }
-    item, err := h.Services.Item.Create(c.Request().Context(), req)
-    if err != nil {
-        return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create")
-    }
-    return c.JSON(http.StatusCreated, item)
-}
