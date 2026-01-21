@@ -12,10 +12,13 @@ import {
     SidebarMenuItem,
     SidebarGroup,
     SidebarGroupContent,
-    SidebarGroupLabel
+    SidebarGroupLabel,
+    SidebarFooter
 } from '@/components/ui/sidebar'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
+import { NavUser } from '@/components/nav-user'
 
 const items = [
     {
@@ -42,6 +45,13 @@ const items = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname()
+    const { user } = useUser()
+
+    const userData = {
+        name: user?.fullName || 'User',
+        email: user?.primaryEmailAddress?.emailAddress || '',
+        avatar: user?.imageUrl || ''
+    }
 
     return (
         <Sidebar variant="inset" className="top-16 h-[calc(100svh-4rem)]!" {...props}>
@@ -81,6 +91,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+            <SidebarFooter>{user && <NavUser user={userData} />}</SidebarFooter>
         </Sidebar>
     )
 }
