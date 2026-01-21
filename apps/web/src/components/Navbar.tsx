@@ -34,6 +34,13 @@ export default function Navbar() {
                                 {link.name}
                             </Link>
                         ))}
+                        <SignedIn>
+                            <Link
+                                href="/dashboard"
+                                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900">
+                                Dashboard
+                            </Link>
+                        </SignedIn>
                     </div>
 
                     {/* Desktop Auth Buttons */}
@@ -92,6 +99,14 @@ export default function Navbar() {
                                 {link.name}
                             </Link>
                         ))}
+                        <SignedIn>
+                            <Link
+                                href="/dashboard"
+                                className="block rounded-md px-3 py-2 text-base font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                onClick={() => setMobileMenuOpen(false)}>
+                                Dashboard
+                            </Link>
+                        </SignedIn>
                     </div>
                     <div className="border-t border-slate-200 px-4 pb-3 pt-4">
                         <SignedOut>

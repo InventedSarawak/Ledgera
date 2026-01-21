@@ -15,7 +15,7 @@ export function AuthSync() {
             const email = user.primaryEmailAddress?.emailAddress
 
             await axiosInstance.post(
-                '/api/v1/auth/sync-user',
+                '/auth/sync-user',
                 { email },
                 {
                     headers: {

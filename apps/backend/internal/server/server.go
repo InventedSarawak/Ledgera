@@ -11,6 +11,7 @@ import (
 	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/inventedsarawak/ledgera/internal/database"
 	"github.com/inventedsarawak/ledgera/internal/lib/job"
+	"github.com/inventedsarawak/ledgera/internal/lib/upload"
 	loggerPkg "github.com/inventedsarawak/ledgera/internal/logger"
 	"github.com/newrelic/go-agent/v3/integrations/nrredis-v9"
 	"github.com/redis/go-redis/v9"
@@ -26,6 +27,7 @@ type Server struct {
 	Blockchain    *blockchain.Client
 	httpServer    *http.Server
 	Job           *job.JobService
+	Uploader      *upload.Client
 }
 
 func New(cfg *config.Config, logger *zerolog.Logger, loggerService *loggerPkg.LoggerService) (*Server, error) {
@@ -69,6 +71,19 @@ func New(cfg *config.Config, logger *zerolog.Logger, loggerService *loggerPkg.Lo
 		// Don't fail startup if blockchain is unavailable
 	}
 
+	// Initialize Storage Client
+	uploader, err := upload.NewClient(
+		context.Background(),
+		cfg.StorageBucket.Endpoint,
+		cfg.StorageBucket.AccessKey,
+		cfg.StorageBucket.SecretKey,
+		cfg.StorageBucket.BucketName,
+		cfg.StorageBucket.PublicURL,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize uploader: %w", err)
+	}
+
 	server := &Server{
 		Config:        cfg,
 		Logger:        logger,
@@ -77,6 +92,7 @@ func New(cfg *config.Config, logger *zerolog.Logger, loggerService *loggerPkg.Lo
 		Redis:         redisClient,
 		Blockchain:    blockchainClient,
 		Job:           jobService,
+		Uploader:      uploader,
 	}
 
 	// Start metrics collection

@@ -58,13 +58,14 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 
 	// register versioned routes
 	// return welcome to API message at root
-	
+
 	v1Router := router.Group("/api/v1")
 	v1Router.GET("/", middlewares.Auth.RequireAuth(func(c echo.Context) error {
 		return c.String(http.StatusOK, "Welcome to Ledgera API")
 	}))
 
 	v1.RegisterAuthRoutes(v1Router, h.Auth, middlewares.Auth)
-	
+	v1.RegisterProjectRoutes(v1Router, h.Project, middlewares.Auth)
+
 	return router
 }
