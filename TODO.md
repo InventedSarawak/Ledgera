@@ -3,7 +3,7 @@
 ## Setup
 
 - [x] Set up storage bucket on Cloudflare R2.
-- [ ] Test upload and retrieval of files from the storage bucket.
+- [x] Test upload and retrieval of files from the storage bucket.
 
 ## Profile Management
 
@@ -12,4 +12,6 @@
 
 ## Main Dashboard
 
-
+- [ ] Implement filtering and sorting of projects on the dashboard.
+- [ ] Add pagination to the list of projects.
+- [ ] Implement search functionality for projects.

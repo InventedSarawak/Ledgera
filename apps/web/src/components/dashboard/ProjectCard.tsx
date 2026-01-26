@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import Image from 'next/image'
-import { MapPin } from 'lucide-react'
+import { MapPin, Ruler } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { ProjectDetailsDialog } from '@/components/dashboard/ProjectDetailsDialog'
+import { EditProjectDialog } from '@/components/dashboard/EditProjectDialog'
+import { DeleteProjectDialog } from '@/components/dashboard/DeleteProjectDialog'
+import axiosInstance from '@/utils/axios'
+import { useAuth } from '@clerk/nextjs'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Project } from '@/lib/types'
 
 interface ProjectCardProps {
@@ -14,16 +19,36 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+    const { getToken } = useAuth()
+    const queryClient = useQueryClient()
 
     const getStatusConfig = (status: Project['status']) => {
         switch (status) {
+            case 'DRAFT':
+                return {
+                    label: 'Draft',
+                    color: 'bg-gray-500 hover:bg-gray-600',
+                    actionLabel: 'Submit for Approval',
+                    actionVariant: 'default' as const,
+                    actionDisabled: false
+                }
             case 'PENDING':
                 return {
                     label: 'Under Review',
                     color: 'bg-yellow-500 text-black hover:bg-yellow-600',
-                    actionLabel: 'Processing',
+                    actionLabel: 'Under Review',
                     actionVariant: 'secondary' as const,
                     actionDisabled: true
+                }
+            case 'REJECTED':
+                return {
+                    label: 'Rejected',
+                    color: 'bg-red-500 hover:bg-red-600',
+                    actionLabel: 'Edit & Resubmit',
+                    actionVariant: 'outline' as const,
+                    actionDisabled: false
                 }
             case 'APPROVED':
                 return {
@@ -54,9 +79,25 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
     const config = getStatusConfig(project.status)
 
+    // delete handled in DeleteProjectDialog
+
+    const { mutate: submitProject, isPending: isSubmitting } = useMutation({
+        mutationFn: async () => {
+            const token = await getToken()
+            await axiosInstance.post(`/projects/${project.id}/submit`, null, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['projects', 'mine'] })
+        }
+    })
+
     return (
         <>
             <ProjectDetailsDialog project={project} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} />
+            <EditProjectDialog open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />
+            <DeleteProjectDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} project={project} />
             <Card className="overflow-hidden bg-white">
                 <div className="relative h-48 w-full cursor-pointer bg-gray-100" onClick={() => setIsDetailsOpen(true)}>
                     {project.imageUrl ? (
@@ -73,11 +114,18 @@ export function ProjectCard({ project }: ProjectCardProps) {
                         <h3 className="line-clamp-1 text-lg font-semibold leading-none tracking-tight">
                             {project.title}
                         </h3>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span className="line-clamp-1">
-                                {project.locationLat.toFixed(2)}, {project.locationLng.toFixed(2)}
-                            </span>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span className="line-clamp-1">
+                                    {project.locationLat.toFixed(2)}, {project.locationLng.toFixed(2)}
+                                </span>
+                            </div>
+                            <span className="text-slate-300">•</span>
+                            <div className="flex items-center gap-1">
+                                <Ruler className="h-3 w-3" />
+                                <span>{project.area.toFixed(2)} km²</span>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -87,19 +135,47 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 <CardFooter className="gap-2">
                     <Button
                         variant={config.actionVariant}
-                        className="w-full"
-                        disabled={config.actionDisabled}
+                        className="flex-1"
+                        disabled={config.actionDisabled || isSubmitting}
                         onClick={(e) => {
                             e.stopPropagation()
-                            if (project.status === 'APPROVED') {
-                                // Mint logic would go here
+                            if (project.status === 'DRAFT' || project.status === 'REJECTED') {
+                                submitProject()
+                            } else if (project.status === 'APPROVED') {
                                 console.log('Minting...')
                             } else if (project.status === 'DEPLOYED') {
-                                // Manage logic
                                 console.log('Managing...')
                             }
                         }}>
-                        {config.actionLabel}
+                        {isSubmitting ? 'Submitting...' : config.actionLabel}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="flex-1"
+                        disabled={
+                            project.status === 'PENDING' ||
+                            project.status === 'APPROVED' ||
+                            project.status === 'DEPLOYED'
+                        }
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setIsEditOpen(true)
+                        }}>
+                        Edit
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={
+                            project.status === 'PENDING' ||
+                            project.status === 'APPROVED' ||
+                            project.status === 'DEPLOYED'
+                        }
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setIsDeleteOpen(true)
+                        }}>
+                        Delete
                     </Button>
                 </CardFooter>
             </Card>

@@ -16,6 +16,7 @@ type CreateProjectPayload struct {
 	ImageURL    string  `json:"imageUrl" validate:"required,url"`
 	LocationLat float64 `json:"locationLat" validate:"required,latitude"`
 	LocationLng float64 `json:"locationLng" validate:"required,longitude"`
+	Area        float64 `json:"area" validate:"required,gt=0"`
 }
 
 func (p *CreateProjectPayload) Validate() error {
@@ -28,11 +29,14 @@ func (p *CreateProjectPayload) Validate() error {
 // ------------------------------------------------------------
 
 type UpdateProjectPayload struct {
-	ID              uuid.UUID `param:"id" validate:"required,uuid"`
-	Title           *string   `json:"title" validate:"omitempty,min=3,max=150"`
-	Description     *string   `json:"description" validate:"omitempty,min=10"`
-	ContractAddress *string   `json:"contractAddress" validate:"omitempty,eth_addr"`
-	Status          *ProjectStatus   `json:"status" validate:"omitempty,oneof=PENDING APPROVED DEPLOYED"`
+	ID              uuid.UUID      `param:"id" validate:"required,uuid"`
+	Title           *string        `json:"title" validate:"omitempty,min=3,max=150"`
+	Description     *string        `json:"description" validate:"omitempty,min=10"`
+	ContractAddress *string        `json:"contractAddress" validate:"omitempty,eth_addr"`
+	LocationLat     *float64       `json:"locationLat" validate:"omitempty,latitude"`
+	LocationLng     *float64       `json:"locationLng" validate:"omitempty,longitude"`
+	Area            *float64       `json:"area" validate:"omitempty,gt=0"`
+	Status          *ProjectStatus `json:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`
 }
 
 func (p *UpdateProjectPayload) Validate() error {
@@ -45,12 +49,12 @@ func (p *UpdateProjectPayload) Validate() error {
 // ------------------------------------------------------------
 
 type GetProjectsQuery struct {
-	Page       *int    `query:"page" validate:"omitempty,min=1"`
-	Limit      *int    `query:"limit" validate:"omitempty,min=1,max=100"`
-	Sort       *string `query:"sort" validate:"omitempty,oneof=created_at title"`
-	Order      *string `query:"order" validate:"omitempty,oneof=asc desc"`
-	Status     *ProjectStatus `query:"status" validate:"omitempty,oneof=PENDING APPROVED DEPLOYED"`
-	SupplierID *string `query:"supplierId" validate:"omitempty"`
+	Page       *int           `query:"page" validate:"omitempty,min=1"`
+	Limit      *int           `query:"limit" validate:"omitempty,min=1,max=100"`
+	Sort       *string        `query:"sort" validate:"omitempty,oneof=created_at title"`
+	Order      *string        `query:"order" validate:"omitempty,oneof=asc desc"`
+	Status     *ProjectStatus `query:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`
+	SupplierID *string        `query:"supplierId" validate:"omitempty"`
 }
 
 func (q *GetProjectsQuery) Validate() error {
@@ -102,6 +106,7 @@ type CreateProjectRequestPayload struct {
 	ImageURL    string  `json:"imageUrl" validate:"required,url"`
 	LocationLat float64 `json:"locationLat" validate:"required"`
 	LocationLng float64 `json:"locationLng" validate:"required"`
+	Area        float64 `json:"area" validate:"required"`
 }
 
 func (p *CreateProjectRequestPayload) Validate() error {

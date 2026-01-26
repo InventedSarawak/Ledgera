@@ -2,6 +2,7 @@ package testing
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,11 +21,26 @@ import (
 func SetupTest(t *testing.T) (*TestDB, *server.Server, *echo.Echo, func()) {
 	t.Helper()
 
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
-		Level(zerolog.InfoLevel).
-		With().
-		Timestamp().
-		Logger()
+	// Colorful test logger: cyan timestamp, colored levels, readable message
+	cw := zerolog.ConsoleWriter{Out: os.Stdout}
+	cw.NoColor = false
+	cw.FormatTimestamp = func(i interface{}) string {
+		return fmt.Sprintf("\x1b[36m%v\x1b[0m", i) // cyan
+	}
+	cw.FormatLevel = func(i interface{}) string {
+		switch fmt.Sprint(i) {
+		case "info":
+			return "\x1b[32mINF\x1b[0m" // green
+		case "error":
+			return "\x1b[31mERR\x1b[0m" // red
+		case "warn":
+			return "\x1b[33mWRN\x1b[0m" // yellow
+		default:
+			return fmt.Sprint(i)
+		}
+	}
+	// Keep message plain; color applied via levels and timestamp
+	logger := zerolog.New(cw).Level(zerolog.InfoLevel).With().Timestamp().Logger()
 
 	testDB, dbCleanup := SetupTestDB(t)
 

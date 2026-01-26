@@ -1,5 +1,5 @@
 'use client'
-
+import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/nextjs'
 
@@ -11,28 +11,33 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import axiosInstance from '@/utils/axios'
 import { Project } from '@/lib/types'
+import { Pagination } from '@/components/ui/pagination'
 import { AxiosError } from 'axios'
 
 export function DashboardContent() {
     const { getToken } = useAuth()
-    const {
-        data: projects,
-        isLoading,
-        isError,
-        error
-    } = useQuery({
-        queryKey: ['projects', 'mine'],
+    const [page, setPage] = React.useState(1)
+    const [limit] = React.useState(6)
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ['projects', 'mine', page, limit],
         queryFn: async () => {
             const token = await getToken()
-            const { data } = await axiosInstance.get<Project[]>('/projects/mine', {
+            const res = await axiosInstance.get<Project[]>('/projects/mine', {
                 headers: {
                     Authorization: `Bearer ${token}`
-                }
+                },
+                params: { page, limit }
             })
-            return data
+            const total = Number(res.headers['x-total-count'] ?? 0)
+            const hdrPage = Number(res.headers['x-page'] ?? page)
+            const hdrLimit = Number(res.headers['x-limit'] ?? limit)
+            return { projects: res.data, total, page: hdrPage, limit: hdrLimit }
         }
     })
-
+    const projects = data?.projects
+    const total = data?.total ?? 0
+    const currentPage = data?.page ?? page
+    const currentLimit = data?.limit ?? limit
     const pendingCount = projects?.filter((p) => p.status === 'PENDING').length || 0
 
     return (
@@ -94,6 +99,12 @@ export function DashboardContent() {
                         isLoading={isLoading}
                         isError={isError}
                         error={error as AxiosError | null}
+                    />
+                    <Pagination
+                        page={currentPage}
+                        limit={currentLimit}
+                        total={total}
+                        onPageChange={(p) => setPage(p)}
                     />
                 </TabsContent>
             </Tabs>

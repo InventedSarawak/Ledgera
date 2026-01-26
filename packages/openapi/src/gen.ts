@@ -15,7 +15,7 @@ const filteredDoc = replaceCustomFileTypesToOpenApiCompatible(JSON.stringify(Ope
 
 const formattedDoc = JSON.parse(filteredDoc)
 
-const filePaths = ['./openapi.json', '../../apps/backend/static/openapi.json']
+const filePaths = ['../../apps/backend/static/openapi.json']
 
 const logger = pino({
     name: 'openapi-gen',

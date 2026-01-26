@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
 	"github.com/inventedsarawak/ledgera/internal/errs"
+	"github.com/labstack/echo/v4"
 )
 
 type Validatable interface {
@@ -28,8 +28,26 @@ func (c CustomValidationErrors) Error() string {
 
 func BindAndValidate(c echo.Context, payload Validatable) error {
 	if err := c.Bind(payload); err != nil {
-		message := strings.Split(strings.Split(err.Error(), ",")[1], "message=")[1]
-		return errs.NewBadRequestError(message, false, nil, nil, nil)
+		// Be defensive when extracting bind errors to avoid panics on unexpected formats
+		msg := "Invalid request payload"
+		if httpErr, ok := err.(*echo.HTTPError); ok {
+			if s, ok := httpErr.Message.(string); ok && s != "" {
+				msg = s
+			}
+		} else if idx := strings.Index(err.Error(), "message="); idx != -1 {
+			// Try to extract the message part if present
+			msgPart := err.Error()[idx+len("message="):]
+			if comma := strings.Index(msgPart, ","); comma != -1 {
+				msgPart = strings.TrimSpace(msgPart[:comma])
+			}
+			if msgPart != "" {
+				msg = msgPart
+			}
+		} else if err.Error() != "" {
+			msg = err.Error()
+		}
+
+		return errs.NewBadRequestError(msg, false, nil, nil, nil)
 	}
 
 	if msg, fieldErrors := validateStruct(payload); fieldErrors != nil {
@@ -50,13 +68,21 @@ func extractValidationErrors(err error) (string, []errs.FieldError) {
 	var fieldErrors []errs.FieldError
 	validationErrors, ok := err.(validator.ValidationErrors)
 	if !ok {
-		customValidationErrors := err.(CustomValidationErrors)
-		for _, err := range customValidationErrors {
-			fieldErrors = append(fieldErrors, errs.FieldError{
-				Field: err.Field,
-				Error: err.Message,
-			})
+		// Try custom wrapped errors first
+		if customValidationErrors, ok2 := err.(CustomValidationErrors); ok2 {
+			for _, err := range customValidationErrors {
+				fieldErrors = append(fieldErrors, errs.FieldError{
+					Field: err.Field,
+					Error: err.Message,
+				})
+			}
+			return "Validation failed", fieldErrors
 		}
+		// Unknown error type: return a single generic error to avoid panics
+		return "Validation failed", []errs.FieldError{{
+			Field: "",
+			Error: err.Error(),
+		}}
 	}
 
 	for _, err := range validationErrors {
@@ -82,24 +108,32 @@ func extractValidationErrors(err error) (string, []errs.FieldError) {
 			msg = fmt.Sprintf("must be one of: %s", err.Param())
 		case "email":
 			msg = "must be a valid email address"
+		case "url":
+			msg = "must be a valid URL"
 		case "e164":
 			msg = "must be a valid phone number with country code"
 		case "uuid":
 			msg = "must be a valid UUID"
 		case "uuidList":
 			msg = "must be a comma-separated list of valid UUIDs"
+		case "latitude":
+			msg = "must be a valid latitude between -90 and 90"
+		case "longitude":
+			msg = "must be a valid longitude between -180 and 180"
+		case "eth_addr":
+			msg = "must be a valid Ethereum address starting with 0x"
 		case "dive":
 			msg = "some items are invalid"
 		default:
 			if err.Param() != "" {
-				msg = fmt.Sprintf("%s: %s:%s", field, err.Tag(), err.Param())
+				msg = fmt.Sprintf("failed %s:%s", err.Tag(), err.Param())
 			} else {
-				msg = fmt.Sprintf("%s: %s", field, err.Tag())
+				msg = fmt.Sprintf("failed %s validation", err.Tag())
 			}
 		}
 
 		fieldErrors = append(fieldErrors, errs.FieldError{
-			Field: strings.ToLower(err.Field()),
+			Field: field,
 			Error: msg,
 		})
 	}

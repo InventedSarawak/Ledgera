@@ -2,15 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/nextjs'
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Menu, X } from 'lucide-react'
 
 export default function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const pathname = usePathname()
-    const { isSignedIn } = useAuth()
 
     const navLinks = [
         { name: 'Marketplace', href: '/marketplace' },

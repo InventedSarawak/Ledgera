@@ -4,8 +4,9 @@ export interface Project {
     description: string
     locationLat: number
     locationLng: number
+    area: number
     imageUrl: string
-    status: 'PENDING' | 'APPROVED' | 'DEPLOYED'
+    status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'DEPLOYED' | 'REJECTED'
     createdAt: string
     contractAddress?: string
     tokenSymbol?: string

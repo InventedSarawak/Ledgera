@@ -1,8 +1,31 @@
 -- Write your migrate up statements here
 
--- 1. DEFINE ENUMS
-CREATE TYPE user_role AS ENUM ('ADMIN', 'SUPPLIER', 'BUYER');
-CREATE TYPE project_status AS ENUM ('PENDING', 'APPROVED', 'DEPLOYED');
+-- 1. DEFINE ENUMS (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'user_role' AND n.nspname = 'public'
+    ) THEN
+        CREATE TYPE user_role AS ENUM ('ADMIN', 'SUPPLIER', 'BUYER');
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'project_status' AND n.nspname = 'public'
+    ) THEN
+        CREATE TYPE project_status AS ENUM ('PENDING', 'APPROVED', 'DEPLOYED', 'DRAFT', 'REJECTED');
+    END IF;
+END
+$$;
 
 -- 2. USERS
 CREATE TABLE IF NOT EXISTS users (
@@ -15,10 +38,19 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TRIGGER set_timestamp
-BEFORE UPDATE ON users
-FOR EACH ROW
-EXECUTE PROCEDURE trigger_set_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'set_timestamp' AND tgrelid = 'users'::regclass
+    ) THEN
+        CREATE TRIGGER set_timestamp
+        BEFORE UPDATE ON users
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_set_updated_at();
+    END IF;
+END
+$$;
 
 
 -- 3. PROJECTS
@@ -31,22 +63,32 @@ CREATE TABLE IF NOT EXISTS projects (
     image_url TEXT NOT NULL,
     location_lat DECIMAL(9,6),
     location_lng DECIMAL(9,6),
+    area DECIMAL,
     
     contract_address TEXT UNIQUE,  
     token_symbol TEXT,               
     
-    status project_status NOT NULL DEFAULT 'PENDING',
+    status project_status NOT NULL DEFAULT 'DRAFT',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TRIGGER set_timestamp
-BEFORE UPDATE ON projects
-FOR EACH ROW
-EXECUTE PROCEDURE trigger_set_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'set_timestamp' AND tgrelid = 'projects'::regclass
+    ) THEN
+        CREATE TRIGGER set_timestamp
+        BEFORE UPDATE ON projects
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_set_updated_at();
+    END IF;
+END
+$$;
 
-CREATE INDEX idx_projects_supplier ON projects(supplier_id);
-CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_supplier ON projects(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 
 
 -- 4. MARKETPLACE LISTINGS
@@ -66,13 +108,22 @@ CREATE TABLE IF NOT EXISTS listings (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TRIGGER set_timestamp
-BEFORE UPDATE ON listings
-FOR EACH ROW
-EXECUTE PROCEDURE trigger_set_updated_at();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'set_timestamp' AND tgrelid = 'listings'::regclass
+    ) THEN
+        CREATE TRIGGER set_timestamp
+        BEFORE UPDATE ON listings
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_set_updated_at();
+    END IF;
+END
+$$;
 
-CREATE INDEX idx_listings_project ON listings(project_id);
-CREATE INDEX idx_listings_active ON listings(active);
+CREATE INDEX IF NOT EXISTS idx_listings_project ON listings(project_id);
+CREATE INDEX IF NOT EXISTS idx_listings_active ON listings(active);
 
 
 -- 5. CERTIFICATES
@@ -89,8 +140,8 @@ CREATE TABLE IF NOT EXISTS certificates (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_certificates_owner ON certificates(owner_id);
-CREATE INDEX idx_certificates_project ON certificates(project_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_owner ON certificates(owner_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_project ON certificates(project_id);
 
 
 ---- create above / drop below ----

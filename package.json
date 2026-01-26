@@ -1,33 +1,34 @@
 {
-  "name": "ledgera",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "lint:check": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
-    "format:check": "turbo run format",
-    "format:fix": "turbo run format:fix",
-    "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean && rimraf node_modules",
-    "prepare": "husky"
-  },
-  "engines": {
-    "node": ">=22"
-  },
-  "packageManager": "pnpm@10.25.0",
-  "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@typescript-eslint/eslint-plugin": "^8.51.0",
-    "@typescript-eslint/parser": "^8.51.0",
-    "eslint": "^9.39.2",
-    "eslint-plugin-prettier": "^5.5.4",
-    "husky": "^9.1.7",
-    "prettier": "^3.7.4",
-    "rimraf": "^6.1.2",
-    "turbo": "^2.7.1",
-    "typescript": "^5.9.3"
-  }
+    "name": "ledgera",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "lint:check": "turbo run lint",
+        "lint:fix": "turbo run lint:fix",
+        "format:check": "turbo run format",
+        "format:fix": "turbo run format:fix",
+        "typecheck": "turbo run typecheck",
+        "clean": "turbo run clean && rimraf node_modules",
+        "prepare": "husky",
+        "test:all": "bash ./scripts/run-tests.sh"
+    },
+    "engines": {
+        "node": ">=22"
+    },
+    "packageManager": "pnpm@10.25.0",
+    "devDependencies": {
+        "@eslint/js": "^9.39.2",
+        "@typescript-eslint/eslint-plugin": "^8.51.0",
+        "@typescript-eslint/parser": "^8.51.0",
+        "eslint": "^9.39.2",
+        "eslint-plugin-prettier": "^5.5.4",
+        "husky": "^9.1.7",
+        "prettier": "^3.7.4",
+        "rimraf": "^6.1.2",
+        "turbo": "^2.7.1",
+        "typescript": "^5.9.3"
+    }
 }

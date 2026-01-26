@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { Calendar, FileText, Globe, MapPin, ShieldCheck, Coins } from 'lucide-react'
+import { Calendar, FileText, Globe, MapPin, ShieldCheck, Coins, Ruler } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -79,6 +79,16 @@ export function ProjectDetailsDialog({ project, open, onOpenChange }: ProjectDet
                                     </div>
                                     <div className="mt-1 text-sm text-slate-600">
                                         {project.locationLat}, {project.locationLng}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border border-slate-200 p-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                                        <Ruler className="h-4 w-4 text-slate-500" />
+                                        Area (km²)
+                                    </div>
+                                    <div className="mt-1 text-sm text-slate-600">
+                                        {project.area?.toFixed ? project.area.toFixed(2) : project.area} km²
                                     </div>
                                 </div>
 

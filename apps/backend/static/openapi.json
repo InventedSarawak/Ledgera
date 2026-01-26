@@ -175,6 +175,640 @@
           }
         ]
       }
+    },
+    "/projects": {
+      "post": {
+        "summary": "Create Project",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [],
+        "operationId": "create",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 150
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "locationLat": {
+                    "type": "number"
+                  },
+                  "locationLng": {
+                    "type": "number"
+                  },
+                  "area": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": 0
+                  },
+                  "topLeftLat": {
+                    "type": "number"
+                  },
+                  "topLeftLng": {
+                    "type": "number"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "title",
+                  "description",
+                  "locationLat",
+                  "locationLng",
+                  "area",
+                  "topLeftLat",
+                  "topLeftLng",
+                  "image"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "201",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "supplierId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "locationLat": {
+                      "type": "number"
+                    },
+                    "locationLng": {
+                      "type": "number"
+                    },
+                    "area": {
+                      "type": "number"
+                    },
+                    "topLeftLat": {
+                      "type": "number"
+                    },
+                    "topLeftLng": {
+                      "type": "number"
+                    },
+                    "contractAddress": {
+                      "type": "string"
+                    },
+                    "tokenSymbol": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING",
+                        "APPROVED",
+                        "DEPLOYED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "supplierId",
+                    "title",
+                    "description",
+                    "imageUrl",
+                    "locationLat",
+                    "locationLng",
+                    "area",
+                    "topLeftLat",
+                    "topLeftLng",
+                    "status",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/mine": {
+      "get": {
+        "summary": "List My Projects",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "operationId": "listMine",
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "supplierId": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "imageUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "locationLat": {
+                        "type": "number"
+                      },
+                      "locationLng": {
+                        "type": "number"
+                      },
+                      "area": {
+                        "type": "number"
+                      },
+                      "topLeftLat": {
+                        "type": "number"
+                      },
+                      "topLeftLng": {
+                        "type": "number"
+                      },
+                      "contractAddress": {
+                        "type": "string"
+                      },
+                      "tokenSymbol": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "DRAFT",
+                          "PENDING",
+                          "APPROVED",
+                          "DEPLOYED",
+                          "REJECTED"
+                        ]
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "supplierId",
+                      "title",
+                      "description",
+                      "imageUrl",
+                      "locationLat",
+                      "locationLng",
+                      "area",
+                      "topLeftLat",
+                      "topLeftLng",
+                      "status",
+                      "createdAt"
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of items matching the query",
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              },
+              "X-Page": {
+                "description": "Current page number (1-based)",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "X-Limit": {
+                "description": "Page size (items per page)",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "summary": "Get Project By ID",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "getById",
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "supplierId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "locationLat": {
+                      "type": "number"
+                    },
+                    "locationLng": {
+                      "type": "number"
+                    },
+                    "area": {
+                      "type": "number"
+                    },
+                    "topLeftLat": {
+                      "type": "number"
+                    },
+                    "topLeftLng": {
+                      "type": "number"
+                    },
+                    "contractAddress": {
+                      "type": "string"
+                    },
+                    "tokenSymbol": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING",
+                        "APPROVED",
+                        "DEPLOYED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "supplierId",
+                    "title",
+                    "description",
+                    "imageUrl",
+                    "locationLat",
+                    "locationLng",
+                    "area",
+                    "topLeftLat",
+                    "topLeftLng",
+                    "status",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Project",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "update",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 150
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "locationLat": {
+                    "type": "number"
+                  },
+                  "locationLng": {
+                    "type": "number"
+                  },
+                  "area": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": 0
+                  },
+                  "topLeftLat": {
+                    "type": "number"
+                  },
+                  "topLeftLng": {
+                    "type": "number"
+                  },
+                  "contractAddress": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "DRAFT",
+                      "PENDING",
+                      "APPROVED",
+                      "DEPLOYED",
+                      "REJECTED"
+                    ]
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "supplierId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "locationLat": {
+                      "type": "number"
+                    },
+                    "locationLng": {
+                      "type": "number"
+                    },
+                    "area": {
+                      "type": "number"
+                    },
+                    "topLeftLat": {
+                      "type": "number"
+                    },
+                    "topLeftLng": {
+                      "type": "number"
+                    },
+                    "contractAddress": {
+                      "type": "string"
+                    },
+                    "tokenSymbol": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING",
+                        "APPROVED",
+                        "DEPLOYED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "supplierId",
+                    "title",
+                    "description",
+                    "imageUrl",
+                    "locationLat",
+                    "locationLng",
+                    "area",
+                    "topLeftLat",
+                    "topLeftLng",
+                    "status",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Project",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "delete",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "204",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}/submit": {
+      "post": {
+        "summary": "Submit Project For Approval",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "submit",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "202",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "info": {

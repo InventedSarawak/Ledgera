@@ -44,6 +44,13 @@ tasks:
             - echo 'Running up migrations...'
             - tern migrate -m ./internal/database/migrations --conn-string {{.LEDGERA_DB_DSN}}
 
+    migrations:down:
+        desc: apply all down database migrations
+        deps: [confirm]
+        cmds:
+            - echo 'Running down migrations...'
+            - tern migrate -m ./internal/database/migrations --conn-string {{.LEDGERA_DB_DSN}} --down
+
     tidy:
         desc: format all .go files, and tidy and vendor module dependencies
         cmds:
