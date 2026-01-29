@@ -9,7 +9,7 @@ export function AuthSync() {
 
     useEffect(() => {
         const sync = async () => {
-            if (!user) return
+            if (!user || !user.publicMetadata.role) return
 
             const token = await getToken()
             const email = user.primaryEmailAddress?.emailAddress
