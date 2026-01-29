@@ -3,11 +3,11 @@ package middleware
 import (
 	"context"
 
+	"github.com/inventedsarawak/ledgera/internal/logger"
+	"github.com/inventedsarawak/ledgera/internal/server"
 	"github.com/labstack/echo/v4"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/rs/zerolog"
-	"github.com/inventedsarawak/ledgera/internal/logger"
-	"github.com/inventedsarawak/ledgera/internal/server"
 )
 
 const (
@@ -83,6 +83,13 @@ func (ce *ContextEnhancer) extractUserRole(c echo.Context) string {
 func GetUserID(c echo.Context) string {
 	if userID, ok := c.Get(UserIDKey).(string); ok {
 		return userID
+	}
+	return ""
+}
+
+func GetUserRole(c echo.Context) string {
+	if userRole, ok := c.Get(UserRoleKey).(string); ok {
+		return userRole
 	}
 	return ""
 }

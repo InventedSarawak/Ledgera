@@ -5,6 +5,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type ProjectWithSupplier struct {
+	Project
+	SupplierEmail string `json:"supplierEmail"`
+}
+
 // ------------------------------------------------------------
 // Create
 // ------------------------------------------------------------

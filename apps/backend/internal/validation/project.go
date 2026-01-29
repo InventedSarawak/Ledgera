@@ -80,3 +80,12 @@ func (r *SendProjectForApprovalRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
 }
+
+type ReviewProjectRequest struct {
+	ID string `param:"id" validate:"required,uuid"`
+}
+
+func (r *ReviewProjectRequest) Validate() error {
+	validate := validator.New()
+	return validate.Struct(r)
+}

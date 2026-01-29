@@ -218,3 +218,117 @@ func TestProjectCRUDAndSubmission(t *testing.T) {
 	// Either 204 No Content on success or 200/204 depending on framework; our handler returns 204
 	assert.Equal(t, http.StatusNoContent, rec.Code)
 }
+
+func TestAdminProjectWorkflow(t *testing.T) {
+	_, _, e, cleanup := itesting.SetupTest(t)
+	defer cleanup()
+
+	// Ensure mock user exists (bypass auth sync)
+	{
+		payload := user.SyncUserPayload{Email: "admin@example.com"}
+		jsonBody := itesting.MustMarshalJSON(t, payload)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sync-user", bytes.NewReader(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Test-Auth", "bypass")
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		require.Equal(t, http.StatusOK, rec.Code)
+	}
+
+	// 1. Create a project (acts as Supplier)
+	fields := map[string]string{
+		"title":       "Carbon Project Alpha",
+		"description": "A new project for review.",
+		"locationLat": "10.0000",
+		"locationLng": "20.0000",
+		"area":        "100.50",
+	}
+	ct, body := createMultipartBody(t, fields, "image", "alpha.jpg", []byte("image-data"))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body))
+	req.Header.Set("Content-Type", ct)
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusCreated, rec.Code)
+
+	var created project.Project
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &created))
+
+	// 2. Submit for Approval (Draft -> Pending)
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects/"+created.ID.String()+"/submit", nil)
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusAccepted, rec.Code)
+
+	// 3. List Pending Review (acts as Admin)
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/projects/review?page=1&limit=10", nil)
+
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var pendingList []project.ProjectWithSupplier
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &pendingList))
+
+	// Check if our project is in the list
+	found := false
+	for _, p := range pendingList {
+		if p.ID == created.ID {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Submitted project should be in pending list")
+
+	// 4. Approve the project (acts as Admin)
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects/"+created.ID.String()+"/approve", nil)
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var approved project.Project
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &approved))
+	assert.Equal(t, project.ProjectStatusApproved, approved.Status)
+
+	// 5. Test Reject workflow with a fresh project
+	// Create another project
+	ct2, body2 := createMultipartBody(t, map[string]string{
+		"title":       "Carbon Project Beta",
+		"description": "Another project for reject test.",
+		"locationLat": "15.0000",
+		"locationLng": "25.0000",
+		"area":        "50.00",
+	}, "image", "beta.jpg", []byte("image-data-2"))
+
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body2))
+	req.Header.Set("Content-Type", ct2)
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusCreated, rec.Code)
+
+	var created2 project.Project
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &created2))
+
+	// Submit it
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects/"+created2.ID.String()+"/submit", nil)
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusAccepted, rec.Code)
+
+	// Reject it
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects/"+created2.ID.String()+"/reject", nil)
+	req.Header.Set("X-Test-Auth", "bypass")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var rejected project.Project
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &rejected))
+	assert.Equal(t, project.ProjectStatusRejected, rejected.Status)
+}

@@ -31,20 +31,18 @@ func (h *ProjectHandler) Create(c echo.Context) error {
 		func(c echo.Context, req *validation.CreateProjectRequest) (*project.Project, error) {
 			userID := middleware.GetUserID(c)
 
-			// Handle file extraction manually as Bind doesn't support generic multipart well for validation without custom handling
 			file, err := c.FormFile("image")
 			if err != nil {
 				return nil, echo.NewHTTPError(http.StatusBadRequest, "Image file is required")
 			}
 
-			// Map Request to Service Payload
 			payload := project.CreateProjectPayload{
 				Title:       req.Title,
 				Description: req.Description,
 				LocationLat: req.LocationLat,
 				LocationLng: req.LocationLng,
 				Area:        req.Area,
-				ImageURL:    "https://pending.upload", // Placeholder
+				ImageURL:    "https://pending.upload",
 			}
 
 			return h.projectService.Create(c, payload, userID, file)
@@ -63,7 +61,25 @@ func (h *ProjectHandler) ListMine(c echo.Context) error {
 			if err != nil {
 				return nil, err
 			}
-			// Set pagination headers
+			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
+			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
+			return items, nil
+		},
+		http.StatusOK,
+		&validation.ListProjectsRequest{},
+	)(c)
+}
+
+func (h *ProjectHandler) ListPendingReview(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ListProjectsRequest) ([]project.ProjectWithSupplier, error) {
+			adminID := middleware.GetUserID(c)
+			items, total, err := h.projectService.ListPendingForReview(c, adminID, req.Page, req.Limit)
+			if err != nil {
+				return nil, err
+			}
 			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
 			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
 			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
@@ -103,14 +119,12 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 		func(c echo.Context, req *validation.UpdateProjectRequest) (*project.Project, error) {
 			userID := middleware.GetUserID(c)
 
-			// Optional file extraction for image update
 			var fileHeader *multipart.FileHeader
 			file, err := c.FormFile("image")
 			if err == nil && file != nil {
 				fileHeader = file
 			}
 
-			// Map Request to Service Payload
 			var statusPtr *project.ProjectStatus
 			if req.Status != nil {
 				s := project.ProjectStatus(*req.Status)
@@ -143,5 +157,29 @@ func (h *ProjectHandler) SendForApproval(c echo.Context) error {
 		},
 		http.StatusAccepted,
 		&validation.SendProjectForApprovalRequest{},
+	)(c)
+}
+
+func (h *ProjectHandler) Approve(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ReviewProjectRequest) (*project.Project, error) {
+			adminID := middleware.GetUserID(c)
+			return h.projectService.Approve(c, req.ID, adminID)
+		},
+		http.StatusOK,
+		&validation.ReviewProjectRequest{},
+	)(c)
+}
+
+func (h *ProjectHandler) Reject(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ReviewProjectRequest) (*project.Project, error) {
+			adminID := middleware.GetUserID(c)
+			return h.projectService.Reject(c, req.ID, adminID)
+		},
+		http.StatusOK,
+		&validation.ReviewProjectRequest{},
 	)(c)
 }

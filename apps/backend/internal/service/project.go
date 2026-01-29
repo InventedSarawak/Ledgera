@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"github.com/inventedsarawak/ledgera/internal/lib/upload"
 	"github.com/inventedsarawak/ledgera/internal/middleware"
 	"github.com/inventedsarawak/ledgera/internal/model/project"
+	"github.com/inventedsarawak/ledgera/internal/model/user"
 	"github.com/inventedsarawak/ledgera/internal/repository"
 	"github.com/inventedsarawak/ledgera/internal/server"
 	"github.com/labstack/echo/v4"
@@ -15,12 +17,14 @@ import (
 
 type ProjectService struct {
 	repo     *repository.ProjectRepository
+	userRepo *repository.UserRepository
 	uploader *upload.Client
 }
 
-func NewProjectService(s *server.Server, repo *repository.ProjectRepository) *ProjectService {
+func NewProjectService(s *server.Server, repo *repository.ProjectRepository, userRepo *repository.UserRepository) *ProjectService {
 	return &ProjectService{
 		repo:     repo,
+		userRepo: userRepo,
 		uploader: s.Uploader,
 	}
 }
@@ -192,4 +196,133 @@ func (s *ProjectService) SendForApproval(ctx echo.Context, id string, userID str
 
 	_, err = s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusPending)
 	return err
+}
+
+func (s *ProjectService) ListPendingForReview(ctx echo.Context, adminID string, page int, limit int) ([]project.ProjectWithSupplier, int64, error) {
+	logger := middleware.GetLogger(ctx)
+	logger.Info().Str("admin_id", adminID).Msg("listing pending projects for review")
+
+	if err := s.ensureAdmin(ctx, adminID); err != nil {
+		return nil, 0, err
+	}
+
+	projectsList, total, err := s.repo.ListByStatusPaginated(ctx.Request().Context(), project.ProjectStatusPending, page, limit)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to list pending projects")
+		return nil, 0, err
+	}
+
+	var results []project.ProjectWithSupplier
+	for _, p := range projectsList {
+		email := "unknown"
+		supplier, err := s.userRepo.FindByClerkID(ctx.Request().Context(), p.SupplierID)
+		if err == nil && supplier != nil {
+			email = supplier.Email
+		}
+
+		results = append(results, project.ProjectWithSupplier{
+			Project:       p,
+			SupplierEmail: email,
+		})
+	}
+
+	return results, total, nil
+}
+
+func (s *ProjectService) Approve(ctx echo.Context, id string, adminID string) (*project.Project, error) {
+	logger := middleware.GetLogger(ctx)
+	logger.Info().Str("project_id", id).Str("admin_id", adminID).Msg("approving project")
+
+	if err := s.ensureAdmin(ctx, adminID); err != nil {
+		return nil, err
+	}
+
+	existing, err := s.repo.FindByID(ctx.Request().Context(), id)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "Project not found")
+	}
+	if existing.Status != project.ProjectStatusPending {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "Only pending projects can be approved")
+	}
+
+	updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusApproved)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to approve project")
+		return nil, err
+	}
+
+	return updated, nil
+}
+
+func (s *ProjectService) Reject(ctx echo.Context, id string, adminID string) (*project.Project, error) {
+	logger := middleware.GetLogger(ctx)
+	logger.Info().Str("project_id", id).Str("admin_id", adminID).Msg("rejecting project")
+
+	if err := s.ensureAdmin(ctx, adminID); err != nil {
+		return nil, err
+	}
+
+	existing, err := s.repo.FindByID(ctx.Request().Context(), id)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "Project not found")
+	}
+	if existing.Status != project.ProjectStatusPending {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "Only pending projects can be rejected")
+	}
+
+	updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusRejected)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to reject project")
+		return nil, err
+	}
+
+	return updated, nil
+}
+
+func (s *ProjectService) ensureAdmin(ctx echo.Context, clerkID string) error {
+	ctxRole := strings.ToUpper(strings.TrimSpace(middleware.GetUserRole(ctx)))
+	logger := middleware.GetLogger(ctx)
+
+	// DEBUG LOGGING
+	logger.Info().
+		Str("context_role", ctxRole).
+		Str("clerk_id", clerkID).
+		Msg("DEBUG: EnsureAdmin Check")
+
+	if ctxRole == string(user.RoleAdmin) {
+		return nil
+	}
+
+	if clerkID == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	logger.Debug().Str("clerk_id", clerkID).Msg("verifying admin access via repository")
+
+	adminUser, err := s.userRepo.FindByClerkID(ctx.Request().Context(), clerkID)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to load user for admin verification")
+		return err
+	}
+	if adminUser == nil {
+		return echo.NewHTTPError(http.StatusForbidden, "User record missing")
+	}
+
+	// DEBUG LOGGING
+	logger.Info().
+		Str("db_role", string(adminUser.Role)).
+		Str("db_user_id", adminUser.ID.String()).
+		Msg("DEBUG: EnsureAdmin DB Result")
+
+	if adminUser.Role != user.RoleAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Admin access required. ContextRole=%s, DBRole=%s", ctxRole, adminUser.Role))
+	}
+
+	return nil
 }

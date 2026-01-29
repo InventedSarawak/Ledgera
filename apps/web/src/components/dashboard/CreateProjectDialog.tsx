@@ -186,7 +186,7 @@ export function CreateProjectDialog() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="area" className="text-right">
-                                Area (km²)
+                                Area (hectares)
                             </Label>
                             <Input
                                 id="area"

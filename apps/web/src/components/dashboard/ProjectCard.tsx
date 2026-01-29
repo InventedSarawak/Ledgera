@@ -124,7 +124,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                             <span className="text-slate-300">•</span>
                             <div className="flex items-center gap-1">
                                 <Ruler className="h-3 w-3" />
-                                <span>{project.area.toFixed(2)} km²</span>
+                                <span>{project.area.toFixed(2)} hectares</span>
                             </div>
                         </div>
                     </div>

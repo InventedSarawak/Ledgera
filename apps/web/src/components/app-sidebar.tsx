@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { LayoutDashboard, FolderKanban, LineChart, Settings, Command } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, LineChart, Command, ShieldCheck } from 'lucide-react'
 
 import {
     Sidebar,
@@ -19,33 +19,47 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { NavUser } from '@/components/nav-user'
-
-const items = [
-    {
-        title: 'Overview',
-        url: '/',
-        icon: LayoutDashboard
-    },
-    {
-        title: 'Projects',
-        url: '/projects',
-        icon: FolderKanban
-    },
-    {
-        title: 'Analytics',
-        url: '/analytics',
-        icon: LineChart
-    },
-    {
-        title: 'Settings',
-        url: '/settings',
-        icon: Settings
-    }
-]
+import { Roles } from '@/types/globals'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname()
     const { user } = useUser()
+
+    const role = (user?.publicMetadata?.role as Roles | undefined) ?? 'buyer'
+    const items = React.useMemo(() => {
+        if (role === 'admin') {
+            return [
+                {
+                    title: 'Review Queue',
+                    url: '/',
+                    icon: ShieldCheck
+                },
+                {
+                    title: 'Analytics',
+                    url: '/analytics',
+                    icon: LineChart
+                }
+            ]
+        }
+
+        return [
+            {
+                title: 'Overview',
+                url: '/',
+                icon: LayoutDashboard
+            },
+            {
+                title: 'Projects',
+                url: '/projects',
+                icon: FolderKanban
+            },
+            {
+                title: 'Analytics',
+                url: '/analytics',
+                icon: LineChart
+            }
+        ]
+    }, [role])
 
     const userData = {
         name: user?.fullName || 'User',

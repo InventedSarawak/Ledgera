@@ -85,10 +85,10 @@ export function ProjectDetailsDialog({ project, open, onOpenChange }: ProjectDet
                                 <div className="rounded-lg border border-slate-200 p-3">
                                     <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
                                         <Ruler className="h-4 w-4 text-slate-500" />
-                                        Area (km²)
+                                        Area (hectares)
                                     </div>
                                     <div className="mt-1 text-sm text-slate-600">
-                                        {project.area?.toFixed ? project.area.toFixed(2) : project.area} km²
+                                        {project.area?.toFixed ? project.area.toFixed(2) : project.area} hectares
                                     </div>
                                 </div>
 

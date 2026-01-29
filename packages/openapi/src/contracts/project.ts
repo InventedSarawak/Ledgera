@@ -17,8 +17,8 @@ export const ZProject = z.object({
     locationLat: z.number(),
     locationLng: z.number(),
     area: z.number(),
-    contractAddress: z.string().optional(),
-    tokenSymbol: z.string().optional(),
+    contractAddress: z.string().nullable().optional(),
+    tokenSymbol: z.string().nullable().optional(),
     status: ZProjectStatus,
     createdAt: z.string(),
     updatedAt: z.string().optional()
@@ -45,6 +45,10 @@ export const ZUpdateProjectBody = z.object({
     contractAddress: z.string().optional(),
     status: ZProjectStatus.optional(),
     image: ZFile.optional()
+})
+
+export const ZProjectWithSupplier = ZProject.extend({
+    supplierEmail: z.string().email().optional()
 })
 
 export const projectContract = c.router({
@@ -109,6 +113,39 @@ export const projectContract = c.router({
         body: z.undefined(),
         responses: {
             202: z.undefined()
+        },
+        metadata
+    },
+    listPending: {
+        summary: 'List Pending Projects (Admin)',
+        path: '/projects/review',
+        method: 'GET',
+        query: z.object({
+            page: z.number().optional(),
+            limit: z.number().optional()
+        }),
+        responses: {
+            200: z.array(ZProjectWithSupplier)
+        },
+        metadata: { ...getSecurityMetadata(), ...getPaginationHeadersMetadata() }
+    },
+    approve: {
+        summary: 'Approve Project (Admin)',
+        path: '/projects/:id/approve',
+        method: 'POST',
+        body: z.undefined(),
+        responses: {
+            200: ZProject
+        },
+        metadata
+    },
+    reject: {
+        summary: 'Reject Project (Admin)',
+        path: '/projects/:id/reject',
+        method: 'POST',
+        body: z.undefined(),
+        responses: {
+            200: ZProject
         },
         metadata
     }

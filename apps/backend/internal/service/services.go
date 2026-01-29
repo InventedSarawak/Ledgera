@@ -14,7 +14,7 @@ type Services struct {
 
 func NewServices(s *server.Server, repos *repository.Repositories) (*Services, error) {
 	authService := NewAuthService(s, repos.User)
-	projectService := NewProjectService(s, repos.Project)
+	projectService := NewProjectService(s, repos.Project, repos.User)
 
 	return &Services{
 		Job:     s.Job,

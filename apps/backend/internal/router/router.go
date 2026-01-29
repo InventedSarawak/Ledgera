@@ -18,6 +18,7 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 
 	router := echo.New()
 	router.Pre(echoMiddleware.RemoveTrailingSlash())
+	router.File("/favicon.ico", "assets/favicon.ico")
 
 	router.HTTPErrorHandler = middlewares.Global.GlobalErrorHandler
 

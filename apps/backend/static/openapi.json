@@ -211,12 +211,6 @@
                     "minimum": 0,
                     "exclusiveMinimum": 0
                   },
-                  "topLeftLat": {
-                    "type": "number"
-                  },
-                  "topLeftLng": {
-                    "type": "number"
-                  },
                   "image": {
                     "type": "string",
                     "format": "binary"
@@ -228,8 +222,6 @@
                   "locationLat",
                   "locationLng",
                   "area",
-                  "topLeftLat",
-                  "topLeftLng",
                   "image"
                 ]
               }
@@ -270,17 +262,13 @@
                     "area": {
                       "type": "number"
                     },
-                    "topLeftLat": {
-                      "type": "number"
-                    },
-                    "topLeftLng": {
-                      "type": "number"
-                    },
                     "contractAddress": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "tokenSymbol": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "status": {
                       "type": "string",
@@ -308,8 +296,6 @@
                     "locationLat",
                     "locationLng",
                     "area",
-                    "topLeftLat",
-                    "topLeftLng",
                     "status",
                     "createdAt"
                   ]
@@ -384,17 +370,13 @@
                       "area": {
                         "type": "number"
                       },
-                      "topLeftLat": {
-                        "type": "number"
-                      },
-                      "topLeftLng": {
-                        "type": "number"
-                      },
                       "contractAddress": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                       },
                       "tokenSymbol": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                       },
                       "status": {
                         "type": "string",
@@ -422,8 +404,6 @@
                       "locationLat",
                       "locationLng",
                       "area",
-                      "topLeftLat",
-                      "topLeftLng",
                       "status",
                       "createdAt"
                     ]
@@ -514,17 +494,13 @@
                     "area": {
                       "type": "number"
                     },
-                    "topLeftLat": {
-                      "type": "number"
-                    },
-                    "topLeftLng": {
-                      "type": "number"
-                    },
                     "contractAddress": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "tokenSymbol": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "status": {
                       "type": "string",
@@ -552,8 +528,6 @@
                     "locationLat",
                     "locationLng",
                     "area",
-                    "topLeftLat",
-                    "topLeftLng",
                     "status",
                     "createdAt"
                   ]
@@ -611,12 +585,6 @@
                     "minimum": 0,
                     "exclusiveMinimum": 0
                   },
-                  "topLeftLat": {
-                    "type": "number"
-                  },
-                  "topLeftLng": {
-                    "type": "number"
-                  },
                   "contractAddress": {
                     "type": "string"
                   },
@@ -673,17 +641,13 @@
                     "area": {
                       "type": "number"
                     },
-                    "topLeftLat": {
-                      "type": "number"
-                    },
-                    "topLeftLng": {
-                      "type": "number"
-                    },
                     "contractAddress": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "tokenSymbol": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "status": {
                       "type": "string",
@@ -711,8 +675,6 @@
                     "locationLat",
                     "locationLng",
                     "area",
-                    "topLeftLat",
-                    "topLeftLng",
                     "status",
                     "createdAt"
                   ]
@@ -799,6 +761,358 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/review": {
+      "get": {
+        "summary": "List Pending Projects (Admin)",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "operationId": "listPending",
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "supplierId": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "imageUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "locationLat": {
+                        "type": "number"
+                      },
+                      "locationLng": {
+                        "type": "number"
+                      },
+                      "area": {
+                        "type": "number"
+                      },
+                      "contractAddress": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "tokenSymbol": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "DRAFT",
+                          "PENDING",
+                          "APPROVED",
+                          "DEPLOYED",
+                          "REJECTED"
+                        ]
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      },
+                      "supplierEmail": {
+                        "type": "string",
+                        "format": "email"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "supplierId",
+                      "title",
+                      "description",
+                      "imageUrl",
+                      "locationLat",
+                      "locationLng",
+                      "area",
+                      "status",
+                      "createdAt"
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of items matching the query",
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              },
+              "X-Page": {
+                "description": "Current page number (1-based)",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "X-Limit": {
+                "description": "Page size (items per page)",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}/approve": {
+      "post": {
+        "summary": "Approve Project (Admin)",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "approve",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "supplierId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "locationLat": {
+                      "type": "number"
+                    },
+                    "locationLng": {
+                      "type": "number"
+                    },
+                    "area": {
+                      "type": "number"
+                    },
+                    "contractAddress": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "tokenSymbol": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING",
+                        "APPROVED",
+                        "DEPLOYED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "supplierId",
+                    "title",
+                    "description",
+                    "imageUrl",
+                    "locationLat",
+                    "locationLng",
+                    "area",
+                    "status",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/{id}/reject": {
+      "post": {
+        "summary": "Reject Project (Admin)",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "reject",
+        "requestBody": {
+          "description": "Body",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "supplierId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "locationLat": {
+                      "type": "number"
+                    },
+                    "locationLng": {
+                      "type": "number"
+                    },
+                    "area": {
+                      "type": "number"
+                    },
+                    "contractAddress": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "tokenSymbol": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING",
+                        "APPROVED",
+                        "DEPLOYED",
+                        "REJECTED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "supplierId",
+                    "title",
+                    "description",
+                    "imageUrl",
+                    "locationLat",
+                    "locationLng",
+                    "area",
+                    "status",
+                    "createdAt"
+                  ]
+                }
               }
             }
           }

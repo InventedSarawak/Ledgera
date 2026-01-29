@@ -14,8 +14,11 @@ func RegisterProjectRoutes(g *echo.Group, h *handler.ProjectHandler, auth *middl
 
 	projectGroup.POST("", h.Create)
 	projectGroup.GET("/mine", h.ListMine)
+	projectGroup.GET("/review", h.ListPendingReview)
 	projectGroup.GET("/:id", h.GetByID)
 	projectGroup.PATCH("/:id", h.Update)
 	projectGroup.DELETE("/:id", h.Delete)
 	projectGroup.POST("/:id/submit", h.SendForApproval)
+	projectGroup.POST("/:id/approve", h.Approve)
+	projectGroup.POST("/:id/reject", h.Reject)
 }

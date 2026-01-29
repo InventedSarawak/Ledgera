@@ -122,6 +122,54 @@ func (r *ProjectRepository) ListBySupplierPaginated(ctx context.Context, supplie
 	return projects, total, nil
 }
 
+func (r *ProjectRepository) ListByStatusPaginated(ctx context.Context, status project.ProjectStatus, page int, limit int) ([]project.Project, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	listQuery := `
+		SELECT
+			id, supplier_id, title, description, image_url,
+			location_lat, location_lng, area, contract_address, token_symbol,
+			status, created_at, updated_at
+		FROM projects
+		WHERE status = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.s.DB.Pool.Query(ctx, listQuery, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var projects []project.Project
+	for rows.Next() {
+		var p project.Project
+		if err := rows.Scan(
+			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL,
+			&p.LocationLat, &p.LocationLng, &p.Area, &p.ContractAddress, &p.TokenSymbol,
+			&p.Status, &p.CreatedAt, &p.UpdatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		projects = append(projects, p)
+	}
+
+	var total int64
+	err = r.s.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM projects WHERE status = $1`, status).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return projects, total, nil
+}
+
 func (r *ProjectRepository) ListBySupplier(ctx context.Context, supplierID string) ([]project.Project, error) {
 	query := `
 		SELECT 
