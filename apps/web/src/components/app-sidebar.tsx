@@ -1,7 +1,17 @@
 'use client'
 
 import * as React from 'react'
-import { LayoutDashboard, FolderKanban, LineChart, Command, ShieldCheck } from 'lucide-react'
+import {
+    LayoutDashboard,
+    FolderKanban,
+    LineChart,
+    Command,
+    ShieldCheck,
+    ShoppingBag,
+    Wallet,
+    History,
+    Leaf
+} from 'lucide-react'
 
 import {
     Sidebar,
@@ -38,6 +48,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     title: 'Analytics',
                     url: '/analytics',
                     icon: LineChart
+                }
+            ]
+        }
+
+        if (role === 'buyer') {
+            return [
+                {
+                    title: 'Overview',
+                    url: '/',
+                    icon: LayoutDashboard
+                },
+                {
+                    title: 'Browse Credits',
+                    url: '/buyer/marketplace',
+                    icon: ShoppingBag
+                },
+                {
+                    title: 'My Portfolio',
+                    url: '/buyer/portfolio',
+                    icon: Wallet
+                },
+                {
+                    title: 'Transactions',
+                    url: '/buyer/transactions',
+                    icon: History
+                },
+                {
+                    title: 'Retire Credits',
+                    url: '/buyer/retire',
+                    icon: Leaf
                 }
             ]
         }

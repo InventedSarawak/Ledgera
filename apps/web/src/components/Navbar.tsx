@@ -9,34 +9,20 @@ import { Menu, X } from 'lucide-react'
 export default function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-    const navLinks = [
-        { name: 'Marketplace', href: '/marketplace' },
-        { name: 'About', href: '/about' }
-    ]
-
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
-                    {/* Logo */}
+                    {/* Empty spacer for left side */}
+                    <div className="flex-1 hidden md:block"></div>
+
+                    {/* Centered Logo */}
                     <Link href="/" className="flex items-center">
                         <span className="text-2xl font-bold tracking-tight text-slate-900">Ledgera</span>
                     </Link>
 
-                    {/* Desktop Navigation Links */}
-                    <div className="hidden md:flex md:items-center md:space-x-8">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.name}
-                                href={link.href}
-                                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900">
-                                {link.name}
-                            </Link>
-                        ))}
-                    </div>
-
                     {/* Desktop Auth Buttons */}
-                    <div className="hidden md:flex md:items-center md:space-x-4">
+                    <div className="flex-1 hidden md:flex md:items-center md:justify-end md:space-x-4">
                         <SignedOut>
                             <SignInButton mode="modal">
                                 <Button variant="ghost" size="default">
@@ -72,15 +58,6 @@ export default function Navbar() {
             {mobileMenuOpen && (
                 <div className="border-t border-slate-200 bg-white md:hidden">
                     <div className="space-y-1 px-4 pb-3 pt-2">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.name}
-                                href={link.href}
-                                className="block rounded-md px-3 py-2 text-base font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                                onClick={() => setMobileMenuOpen(false)}>
-                                {link.name}
-                            </Link>
-                        ))}
                         <SignedIn>
                             <Link
                                 href="/dashboard"
