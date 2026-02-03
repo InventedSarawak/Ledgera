@@ -10,7 +10,9 @@ import {
     ShoppingBag,
     Wallet,
     History,
-    Leaf
+    Leaf,
+    FileText,
+    CheckCircle2
 } from 'lucide-react'
 
 import {
@@ -82,6 +84,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             ]
         }
 
+        // Default to Supplier menu
         return [
             {
                 title: 'Overview',
@@ -90,13 +93,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             },
             {
                 title: 'Projects',
-                url: '/projects',
+                url: '/supplier/projects',
                 icon: FolderKanban
             },
             {
                 title: 'Analytics',
-                url: '/analytics',
+                url: '/supplier/analytics',
                 icon: LineChart
+            },
+            {
+                title: 'Reports',
+                url: '/supplier/reports',
+                icon: FileText
+            },
+            {
+                title: 'Verification',
+                url: '/supplier/verification',
+                icon: CheckCircle2
             }
         ]
     }, [role])

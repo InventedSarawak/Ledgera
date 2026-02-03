@@ -1,10 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { LandingPage } from '@/components/landing/LandingPage'
-import { DashboardContent } from '@/components/dashboard/DashboardContent'
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
-import { AdminDashboardContent } from '@/components/admin/AdminDashboardContent'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { redirect } from 'next/navigation'
-// import { SupplierDashboard } from '@/components/supplier/SupplierDashboard'
+import { SupplierDashboard } from '@/components/supplier/SupplierDashboard'
 import { BuyerDashboard } from '@/components/buyer/BuyerDashboard'
 
 export default async function Home() {
@@ -24,7 +23,7 @@ export default async function Home() {
     if (role === 'admin') {
         return (
             <DashboardLayout>
-                <AdminDashboardContent />
+                <AdminDashboard />
             </DashboardLayout>
         )
     }
@@ -37,9 +36,17 @@ export default async function Home() {
         )
     }
 
+    if (role === 'supplier') {
+        return (
+            <DashboardLayout>
+                <SupplierDashboard />
+            </DashboardLayout>
+        )
+    }
+
     return (
         <DashboardLayout>
-            <DashboardContent />
+            <SupplierDashboard />
         </DashboardLayout>
     )
 }
