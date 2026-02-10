@@ -35,9 +35,11 @@ export function CreateProjectDialog() {
     const [locationLat, setLocationLat] = useState('')
     const [locationLng, setLocationLng] = useState('')
     const [file, setFile] = useState<File | null>(null)
+    const [auditReport, setAuditReport] = useState<File | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [area, setArea] = useState('')
+    const [carbonAmount, setCarbonAmount] = useState('')
 
     const schema = z.object({
         title: z
@@ -57,10 +59,19 @@ export function CreateProjectDialog() {
             (v) => Number(v),
             z.number({ invalid_type_error: 'Area must be a number' }).gt(0, 'Area must be greater than 0')
         ),
+        carbonAmount: z.preprocess(
+            (v) => Number(v),
+            z
+                .number({ invalid_type_error: 'Carbon amount must be a number' })
+                .gt(0, 'Carbon amount must be greater than 0')
+        ),
         file: z
             .instanceof(File, { message: 'Cover image is required' })
             .refine((f) => f.size <= 5 * 1024 * 1024, 'Image must be 5MB or smaller')
-            .refine((f) => f.type.startsWith('image/'), 'File must be an image')
+            .refine((f) => f.type.startsWith('image/'), 'File must be an image'),
+        auditReport: z
+            .instanceof(File, { message: 'Audit report is required' })
+            .refine((f) => f.size <= 10 * 1024 * 1024, 'Audit report must be 10MB or smaller')
     })
 
     const { mutate: createProject, isPending } = useMutation({
@@ -71,7 +82,9 @@ export function CreateProjectDialog() {
             formData.append('locationLat', locationLat)
             formData.append('locationLng', locationLng)
             formData.append('area', area)
+            formData.append('carbonAmount', carbonAmount)
             if (file) formData.append('image', file)
+            if (auditReport) formData.append('auditReport', auditReport)
 
             const token = await getToken()
             return await axiosInstance.post('/projects', formData, {
@@ -88,9 +101,11 @@ export function CreateProjectDialog() {
             setLocationLat('')
             setLocationLng('')
             setFile(null)
+            setAuditReport(null)
             setError(null)
             setFieldErrors({})
             setArea('')
+            setCarbonAmount('')
             queryClient.invalidateQueries({ queryKey: ['projects', 'mine'] })
         },
         onError: (err: AxiosError<ApiErrorResponse>) => {
@@ -102,7 +117,16 @@ export function CreateProjectDialog() {
         e.preventDefault()
         setError(null)
         setFieldErrors({})
-        const parsed = schema.safeParse({ title, description, locationLat, locationLng, area, file })
+        const parsed = schema.safeParse({
+            title,
+            description,
+            locationLat,
+            locationLng,
+            area,
+            carbonAmount,
+            file,
+            auditReport
+        })
         if (!parsed.success) {
             const errs: Record<string, string> = {}
             for (const issue of parsed.error.issues) {
@@ -199,6 +223,44 @@ export function CreateProjectDialog() {
                             {fieldErrors.area && (
                                 <div className="col-start-2 col-span-3 text-xs text-destructive">
                                     {fieldErrors.area}
+                                </div>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="carbonAmount" className="text-right">
+                                Carbon Amount (tonnes)
+                            </Label>
+                            <Input
+                                id="carbonAmount"
+                                type="number"
+                                step="any"
+                                value={carbonAmount}
+                                onChange={(e) => setCarbonAmount(e.target.value)}
+                                className="col-span-3"
+                                placeholder="1000"
+                            />
+                            {fieldErrors.carbonAmount && (
+                                <div className="col-start-2 col-span-3 text-xs text-destructive">
+                                    {fieldErrors.carbonAmount}
+                                </div>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="auditReport" className="text-right">
+                                Audit Report
+                            </Label>
+                            <Input
+                                id="auditReport"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) setAuditReport(e.target.files[0])
+                                }}
+                                className="col-span-3 cursor-pointer"
+                            />
+                            {fieldErrors.auditReport && (
+                                <div className="col-start-2 col-span-3 text-xs text-destructive">
+                                    {fieldErrors.auditReport}
                                 </div>
                             )}
                         </div>

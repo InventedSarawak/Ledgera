@@ -29,23 +29,30 @@ func (r *UserRepository) UpsertUser(ctx context.Context, clerkID string, email s
 
 	query := `
 		INSERT INTO users (clerk_id, email, role, created_at, updated_at)
-		VALUES ($1, $2, $3, NOW(), NOW())
+		VALUES (@clerk_id, @email, @role, NOW(), NOW())
 		ON CONFLICT (clerk_id) DO UPDATE
 		SET 
 			email = EXCLUDED.email,
 			role = EXCLUDED.role,
 			updated_at = NOW()
-		RETURNING id, clerk_id, email, wallet_address, role, created_at, updated_at
+		RETURNING id, clerk_id, email, wallet_address, role, deleted_at, created_at, updated_at
 	`
+
+	args := pgx.NamedArgs{
+		"clerk_id": clerkID,
+		"email":    email,
+		"role":     role,
+	}
 
 	var u user.User
 	// Persist user with resolved role from Clerk metadata
-	err := r.server.DB.Pool.QueryRow(ctx, query, clerkID, email, role).Scan(
+	err := r.server.DB.Pool.QueryRow(ctx, query, args).Scan(
 		&u.ID,
 		&u.ClerkID,
 		&u.Email,
 		&u.WalletAddress,
 		&u.Role,
+		&u.DeletedAt,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)
@@ -59,18 +66,23 @@ func (r *UserRepository) UpsertUser(ctx context.Context, clerkID string, email s
 
 func (r *UserRepository) FindByClerkID(ctx context.Context, clerkID string) (*user.User, error) {
 	query := `
-		SELECT id, clerk_id, email, wallet_address, role, created_at, updated_at
+		SELECT id, clerk_id, email, wallet_address, role, deleted_at, created_at, updated_at
 		FROM users
-		WHERE clerk_id = $1
+		WHERE clerk_id = @clerk_id
 	`
 
+	args := pgx.NamedArgs{
+		"clerk_id": clerkID,
+	}
+
 	var u user.User
-	err := r.server.DB.Pool.QueryRow(ctx, query, clerkID).Scan(
+	err := r.server.DB.Pool.QueryRow(ctx, query, args).Scan(
 		&u.ID,
 		&u.ClerkID,
 		&u.Email,
 		&u.WalletAddress,
 		&u.Role,
+		&u.DeletedAt,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

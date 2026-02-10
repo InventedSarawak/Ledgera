@@ -50,6 +50,26 @@ func createMultipartBody(t *testing.T, fields map[string]string, fileField strin
 	return writer.FormDataContentType(), buf.Bytes()
 }
 
+func createMultipartBodyWithFiles(t *testing.T, fields map[string]string, files map[string]struct{ name string; content []byte }) (contentType string, body []byte) {
+	t.Helper()
+	buf := &bytes.Buffer{}
+	writer := multipart.NewWriter(buf)
+
+	for k, v := range fields {
+		require.NoError(t, writer.WriteField(k, v))
+	}
+
+	for fileField, fileData := range files {
+		fw, err := writer.CreateFormFile(fileField, fileData.name)
+		require.NoError(t, err)
+		_, err = io.Copy(fw, bytes.NewReader(fileData.content))
+		require.NoError(t, err)
+	}
+
+	require.NoError(t, writer.Close())
+	return writer.FormDataContentType(), buf.Bytes()
+}
+
 func TestProjectCRUDAndSubmission(t *testing.T) {
 	_, srv, e, cleanup := itesting.SetupTest(t)
 	defer cleanup()
@@ -69,13 +89,17 @@ func TestProjectCRUDAndSubmission(t *testing.T) {
 
 	// CREATE (multipart)
 	fields := map[string]string{
-		"title":       "Mangrove Restoration",
-		"description": "Restoring mangrove ecosystems for carbon sequestration.",
-		"locationLat": "1.2345",
-		"locationLng": "101.5678",
-		"area":        "123.45",
+		"title":        "Mangrove Restoration",
+		"description":  "Restoring mangrove ecosystems for carbon sequestration.",
+		"locationLat":  "1.2345",
+		"locationLng":  "101.5678",
+		"area":         "123.45",
+		"carbonAmount": "1000",
 	}
-	ct, body := createMultipartBody(t, fields, "image", "cover.jpg", []byte("fake-image"))
+	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct{ name string; content []byte }{
+		"image":       {name: "cover.jpg", content: []byte("fake-image")},
+		"auditReport": {name: "audit.pdf", content: []byte("fake-audit-report")},
+	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body))
 	req.Header.Set("Content-Type", ct)
@@ -106,13 +130,17 @@ func TestProjectCRUDAndSubmission(t *testing.T) {
 	assert.Equal(t, 1, len(listPage1))
 
 	// CREATE second project to test pagination across pages
-	ct2, body2 := createMultipartBody(t, map[string]string{
-		"title":       "Forest Conservation",
-		"description": "Protecting forests.",
-		"locationLat": "2.0000",
-		"locationLng": "100.0000",
-		"area":        "50",
-	}, "image", "cover2.jpg", []byte("fake-image-2"))
+	ct2, body2 := createMultipartBodyWithFiles(t, map[string]string{
+		"title":        "Forest Conservation",
+		"description":  "Protecting forests.",
+		"locationLat":  "2.0000",
+		"locationLng":  "100.0000",
+		"area":         "50",
+		"carbonAmount": "500",
+	}, map[string]struct{ name string; content []byte }{
+		"image":       {name: "cover2.jpg", content: []byte("fake-image-2")},
+		"auditReport": {name: "audit2.pdf", content: []byte("fake-audit-report-2")},
+	})
 
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body2))
 	req.Header.Set("Content-Type", ct2)
@@ -237,13 +265,18 @@ func TestAdminProjectWorkflow(t *testing.T) {
 
 	// 1. Create a project (acts as Supplier)
 	fields := map[string]string{
-		"title":       "Carbon Project Alpha",
-		"description": "A new project for review.",
-		"locationLat": "10.0000",
-		"locationLng": "20.0000",
-		"area":        "100.50",
+
+		"title":        "Carbon Project Alpha",
+		"description":  "A new project for review.",
+		"locationLat":  "10.0000",
+		"locationLng":  "20.0000",
+		"area":         "100.50",
+		"carbonAmount": "20000",
 	}
-	ct, body := createMultipartBody(t, fields, "image", "alpha.jpg", []byte("image-data"))
+	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct{ name string; content []byte }{
+		"image":       {name: "alpha.jpg", content: []byte("image-data")},
+		"auditReport": {name: "alpha-audit.pdf", content: []byte("audit-data")},
+	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body))
 	req.Header.Set("Content-Type", ct)
@@ -296,13 +329,17 @@ func TestAdminProjectWorkflow(t *testing.T) {
 
 	// 5. Test Reject workflow with a fresh project
 	// Create another project
-	ct2, body2 := createMultipartBody(t, map[string]string{
-		"title":       "Carbon Project Beta",
-		"description": "Another project for reject test.",
-		"locationLat": "15.0000",
-		"locationLng": "25.0000",
-		"area":        "50.00",
-	}, "image", "beta.jpg", []byte("image-data-2"))
+	ct2, body2 := createMultipartBodyWithFiles(t, map[string]string{
+		"title":        "Carbon Project Beta",
+		"description":  "Another project for reject test.",
+		"locationLat":  "15.0000",
+		"locationLng":  "25.0000",
+		"area":         "50.00",
+		"carbonAmount": "800",
+	}, map[string]struct{ name string; content []byte }{
+		"image":       {name: "beta.jpg", content: []byte("image-data-2")},
+		"auditReport": {name: "beta-audit.pdf", content: []byte("audit-data-2")},
+	})
 
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body2))
 	req.Header.Set("Content-Type", ct2)

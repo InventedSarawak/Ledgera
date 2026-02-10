@@ -1,1153 +1,1158 @@
 {
-  "openapi": "3.0.2",
-  "paths": {
-    "/status": {
-      "get": {
-        "description": "Get health status",
-        "summary": "Get health",
-        "tags": [
-          "Health"
-        ],
-        "parameters": [],
-        "operationId": "getHealth",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "healthy",
-                        "unhealthy"
-                      ]
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "environment": {
-                      "type": "string"
-                    },
-                    "checks": {
-                      "type": "object",
-                      "properties": {
-                        "database": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string"
-                            },
-                            "response_time": {
-                              "type": "string"
-                            },
-                            "error": {
-                              "type": "string"
+    "openapi": "3.0.2",
+    "paths": {
+        "/status": {
+            "get": {
+                "description": "Get health status",
+                "summary": "Get health",
+                "tags": ["Health"],
+                "parameters": [],
+                "operationId": "getHealth",
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["healthy", "unhealthy"]
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "environment": {
+                                            "type": "string"
+                                        },
+                                        "checks": {
+                                            "type": "object",
+                                            "properties": {
+                                                "database": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "response_time": {
+                                                            "type": "string"
+                                                        },
+                                                        "error": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": ["status", "response_time"]
+                                                },
+                                                "redis": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "response_time": {
+                                                            "type": "string"
+                                                        },
+                                                        "error": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": ["status", "response_time"]
+                                                }
+                                            },
+                                            "required": ["database"]
+                                        }
+                                    },
+                                    "required": ["status", "timestamp", "environment", "checks"]
+                                }
                             }
-                          },
-                          "required": [
-                            "status",
-                            "response_time"
-                          ]
-                        },
-                        "redis": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string"
-                            },
-                            "response_time": {
-                              "type": "string"
-                            },
-                            "error": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "response_time"
-                          ]
                         }
-                      },
-                      "required": [
-                        "database"
-                      ]
                     }
-                  },
-                  "required": [
-                    "status",
-                    "timestamp",
-                    "environment",
-                    "checks"
-                  ]
                 }
-              }
             }
-          }
+        },
+        "/auth/sync-user": {
+            "post": {
+                "description": "Sync user data from Clerk to local database",
+                "summary": "Sync User",
+                "tags": ["Auth"],
+                "parameters": [],
+                "operationId": "syncUser",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    }
+                                },
+                                "required": ["email"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "clerkId": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email"
+                                        },
+                                        "walletAddress": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "enum": ["ADMIN", "SUPPLIER", "BUYER"]
+                                        },
+                                        "createdAt": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": ["id", "clerkId", "email", "role", "createdAt", "updatedAt"]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects": {
+            "post": {
+                "summary": "Create Project",
+                "tags": ["Project"],
+                "parameters": [],
+                "operationId": "create",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "minLength": 3,
+                                        "maxLength": 150
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "minLength": 10
+                                    },
+                                    "locationLat": {
+                                        "type": "number"
+                                    },
+                                    "locationLng": {
+                                        "type": "number"
+                                    },
+                                    "area": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": 0
+                                    },
+                                    "carbonAmount": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": 0
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "auditReport": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "description",
+                                    "locationLat",
+                                    "locationLng",
+                                    "area",
+                                    "carbonAmount",
+                                    "image",
+                                    "auditReport"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "201",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "supplierId": {
+                                            "type": "string"
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "imageUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "auditReportUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "locationLat": {
+                                            "type": "number"
+                                        },
+                                        "locationLng": {
+                                            "type": "number"
+                                        },
+                                        "area": {
+                                            "type": "number"
+                                        },
+                                        "carbonAmount": {
+                                            "type": "number"
+                                        },
+                                        "pricePerTonne": {
+                                            "type": "number"
+                                        },
+                                        "contractAddress": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "tokenSymbol": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                        },
+                                        "createdAt": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "supplierId",
+                                        "title",
+                                        "description",
+                                        "imageUrl",
+                                        "locationLat",
+                                        "locationLng",
+                                        "area",
+                                        "carbonAmount",
+                                        "pricePerTonne",
+                                        "status",
+                                        "createdAt"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects/mine": {
+            "get": {
+                "summary": "List My Projects",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "operationId": "listMine",
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "supplierId": {
+                                                "type": "string"
+                                            },
+                                            "title": {
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "type": "string"
+                                            },
+                                            "imageUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "auditReportUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "locationLat": {
+                                                "type": "number"
+                                            },
+                                            "locationLng": {
+                                                "type": "number"
+                                            },
+                                            "area": {
+                                                "type": "number"
+                                            },
+                                            "carbonAmount": {
+                                                "type": "number"
+                                            },
+                                            "pricePerTonne": {
+                                                "type": "number"
+                                            },
+                                            "contractAddress": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "tokenSymbol": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "status": {
+                                                "type": "string",
+                                                "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                            },
+                                            "createdAt": {
+                                                "type": "string"
+                                            },
+                                            "updatedAt": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "supplierId",
+                                            "title",
+                                            "description",
+                                            "imageUrl",
+                                            "locationLat",
+                                            "locationLng",
+                                            "area",
+                                            "carbonAmount",
+                                            "pricePerTonne",
+                                            "status",
+                                            "createdAt"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-Total-Count": {
+                                "description": "Total number of items matching the query",
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            },
+                            "X-Page": {
+                                "description": "Current page number (1-based)",
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int32"
+                                }
+                            },
+                            "X-Limit": {
+                                "description": "Page size (items per page)",
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int32"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects/{id}": {
+            "get": {
+                "summary": "Get Project By ID",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "operationId": "getById",
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "supplierId": {
+                                            "type": "string"
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "imageUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "auditReportUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "locationLat": {
+                                            "type": "number"
+                                        },
+                                        "locationLng": {
+                                            "type": "number"
+                                        },
+                                        "area": {
+                                            "type": "number"
+                                        },
+                                        "carbonAmount": {
+                                            "type": "number"
+                                        },
+                                        "pricePerTonne": {
+                                            "type": "number"
+                                        },
+                                        "contractAddress": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "tokenSymbol": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                        },
+                                        "createdAt": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "supplierId",
+                                        "title",
+                                        "description",
+                                        "imageUrl",
+                                        "locationLat",
+                                        "locationLng",
+                                        "area",
+                                        "carbonAmount",
+                                        "pricePerTonne",
+                                        "status",
+                                        "createdAt"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "summary": "Update Project",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "operationId": "update",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "minLength": 3,
+                                        "maxLength": 150
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "minLength": 10
+                                    },
+                                    "locationLat": {
+                                        "type": "number"
+                                    },
+                                    "locationLng": {
+                                        "type": "number"
+                                    },
+                                    "area": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": 0
+                                    },
+                                    "carbonAmount": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": 0
+                                    },
+                                    "contractAddress": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "auditReport": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "supplierId": {
+                                            "type": "string"
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "imageUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "auditReportUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "locationLat": {
+                                            "type": "number"
+                                        },
+                                        "locationLng": {
+                                            "type": "number"
+                                        },
+                                        "area": {
+                                            "type": "number"
+                                        },
+                                        "carbonAmount": {
+                                            "type": "number"
+                                        },
+                                        "pricePerTonne": {
+                                            "type": "number"
+                                        },
+                                        "contractAddress": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "tokenSymbol": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                        },
+                                        "createdAt": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "supplierId",
+                                        "title",
+                                        "description",
+                                        "imageUrl",
+                                        "locationLat",
+                                        "locationLng",
+                                        "area",
+                                        "carbonAmount",
+                                        "pricePerTonne",
+                                        "status",
+                                        "createdAt"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "summary": "Delete Project",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "operationId": "delete",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "204",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects/{id}/submit": {
+            "post": {
+                "summary": "Submit Project For Approval",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "operationId": "submit",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "202",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects/review": {
+            "get": {
+                "summary": "List Pending Projects (Admin)",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "operationId": "listPending",
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "supplierId": {
+                                                "type": "string"
+                                            },
+                                            "title": {
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "type": "string"
+                                            },
+                                            "imageUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "auditReportUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "locationLat": {
+                                                "type": "number"
+                                            },
+                                            "locationLng": {
+                                                "type": "number"
+                                            },
+                                            "area": {
+                                                "type": "number"
+                                            },
+                                            "carbonAmount": {
+                                                "type": "number"
+                                            },
+                                            "pricePerTonne": {
+                                                "type": "number"
+                                            },
+                                            "contractAddress": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "tokenSymbol": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "status": {
+                                                "type": "string",
+                                                "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                            },
+                                            "createdAt": {
+                                                "type": "string"
+                                            },
+                                            "updatedAt": {
+                                                "type": "string"
+                                            },
+                                            "supplierEmail": {
+                                                "type": "string",
+                                                "format": "email"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "supplierId",
+                                            "title",
+                                            "description",
+                                            "imageUrl",
+                                            "locationLat",
+                                            "locationLng",
+                                            "area",
+                                            "carbonAmount",
+                                            "pricePerTonne",
+                                            "status",
+                                            "createdAt"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-Total-Count": {
+                                "description": "Total number of items matching the query",
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            },
+                            "X-Page": {
+                                "description": "Current page number (1-based)",
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int32"
+                                }
+                            },
+                            "X-Limit": {
+                                "description": "Page size (items per page)",
+                                "schema": {
+                                    "type": "integer",
+                                    "format": "int32"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects/{id}/approve": {
+            "post": {
+                "summary": "Approve Project (Admin)",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "operationId": "approve",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "supplierId": {
+                                            "type": "string"
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "imageUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "auditReportUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "locationLat": {
+                                            "type": "number"
+                                        },
+                                        "locationLng": {
+                                            "type": "number"
+                                        },
+                                        "area": {
+                                            "type": "number"
+                                        },
+                                        "carbonAmount": {
+                                            "type": "number"
+                                        },
+                                        "pricePerTonne": {
+                                            "type": "number"
+                                        },
+                                        "contractAddress": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "tokenSymbol": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                        },
+                                        "createdAt": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "supplierId",
+                                        "title",
+                                        "description",
+                                        "imageUrl",
+                                        "locationLat",
+                                        "locationLng",
+                                        "area",
+                                        "carbonAmount",
+                                        "pricePerTonne",
+                                        "status",
+                                        "createdAt"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/projects/{id}/reject": {
+            "post": {
+                "summary": "Reject Project (Admin)",
+                "tags": ["Project"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "operationId": "reject",
+                "requestBody": {
+                    "description": "Body",
+                    "content": {
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "200",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "supplierId": {
+                                            "type": "string"
+                                        },
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "description": {
+                                            "type": "string"
+                                        },
+                                        "imageUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "auditReportUrl": {
+                                            "type": "string",
+                                            "format": "uri"
+                                        },
+                                        "locationLat": {
+                                            "type": "number"
+                                        },
+                                        "locationLng": {
+                                            "type": "number"
+                                        },
+                                        "area": {
+                                            "type": "number"
+                                        },
+                                        "carbonAmount": {
+                                            "type": "number"
+                                        },
+                                        "pricePerTonne": {
+                                            "type": "number"
+                                        },
+                                        "contractAddress": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "tokenSymbol": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["DRAFT", "PENDING", "APPROVED", "DEPLOYED", "REJECTED"]
+                                        },
+                                        "createdAt": {
+                                            "type": "string"
+                                        },
+                                        "updatedAt": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "supplierId",
+                                        "title",
+                                        "description",
+                                        "imageUrl",
+                                        "locationLat",
+                                        "locationLng",
+                                        "area",
+                                        "carbonAmount",
+                                        "pricePerTonne",
+                                        "status",
+                                        "createdAt"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
-      }
     },
-    "/auth/sync-user": {
-      "post": {
-        "description": "Sync user data from Clerk to local database",
-        "summary": "Sync User",
-        "tags": [
-          "Auth"
-        ],
-        "parameters": [],
-        "operationId": "syncUser",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "clerkId": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email"
-                    },
-                    "walletAddress": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "ADMIN",
-                        "SUPPLIER",
-                        "BUYER"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "clerkId",
-                    "email",
-                    "role",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
+    "info": {
+        "version": "1.0.0",
+        "title": "Ledgera REST API - Documentation",
+        "description": "Ledgera REST API - Documentation"
     },
-    "/projects": {
-      "post": {
-        "summary": "Create Project",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [],
-        "operationId": "create",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 150
-                  },
-                  "description": {
-                    "type": "string",
-                    "minLength": 10
-                  },
-                  "locationLat": {
-                    "type": "number"
-                  },
-                  "locationLng": {
-                    "type": "number"
-                  },
-                  "area": {
-                    "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": 0
-                  },
-                  "image": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                },
-                "required": [
-                  "title",
-                  "description",
-                  "locationLat",
-                  "locationLng",
-                  "area",
-                  "image"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "201",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "supplierId": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "imageUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
-                    },
-                    "area": {
-                      "type": "number"
-                    },
-                    "contractAddress": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "tokenSymbol": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT",
-                        "PENDING",
-                        "APPROVED",
-                        "DEPLOYED",
-                        "REJECTED"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "supplierId",
-                    "title",
-                    "description",
-                    "imageUrl",
-                    "locationLat",
-                    "locationLng",
-                    "area",
-                    "status",
-                    "createdAt"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/projects/mine": {
-      "get": {
-        "summary": "List My Projects",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "operationId": "listMine",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "supplierId": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": "string"
-                      },
-                      "imageUrl": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "locationLat": {
-                        "type": "number"
-                      },
-                      "locationLng": {
-                        "type": "number"
-                      },
-                      "area": {
-                        "type": "number"
-                      },
-                      "contractAddress": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "tokenSymbol": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "DRAFT",
-                          "PENDING",
-                          "APPROVED",
-                          "DEPLOYED",
-                          "REJECTED"
-                        ]
-                      },
-                      "createdAt": {
-                        "type": "string"
-                      },
-                      "updatedAt": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "supplierId",
-                      "title",
-                      "description",
-                      "imageUrl",
-                      "locationLat",
-                      "locationLng",
-                      "area",
-                      "status",
-                      "createdAt"
-                    ]
-                  }
-                }
-              }
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "Local Server"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
             },
-            "headers": {
-              "X-Total-Count": {
-                "description": "Total number of items matching the query",
-                "schema": {
-                  "type": "integer",
-                  "format": "int64"
-                }
-              },
-              "X-Page": {
-                "description": "Current page number (1-based)",
-                "schema": {
-                  "type": "integer",
-                  "format": "int32"
-                }
-              },
-              "X-Limit": {
-                "description": "Page size (items per page)",
-                "schema": {
-                  "type": "integer",
-                  "format": "int32"
-                }
-              }
+            "x-service-token": {
+                "type": "apiKey",
+                "name": "x-service-token",
+                "in": "header"
             }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/projects/{id}": {
-      "get": {
-        "summary": "Get Project By ID",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "operationId": "getById",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "supplierId": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "imageUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
-                    },
-                    "area": {
-                      "type": "number"
-                    },
-                    "contractAddress": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "tokenSymbol": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT",
-                        "PENDING",
-                        "APPROVED",
-                        "DEPLOYED",
-                        "REJECTED"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "supplierId",
-                    "title",
-                    "description",
-                    "imageUrl",
-                    "locationLat",
-                    "locationLng",
-                    "area",
-                    "status",
-                    "createdAt"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      "patch": {
-        "summary": "Update Project",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "operationId": "update",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 150
-                  },
-                  "description": {
-                    "type": "string",
-                    "minLength": 10
-                  },
-                  "locationLat": {
-                    "type": "number"
-                  },
-                  "locationLng": {
-                    "type": "number"
-                  },
-                  "area": {
-                    "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": 0
-                  },
-                  "contractAddress": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "DRAFT",
-                      "PENDING",
-                      "APPROVED",
-                      "DEPLOYED",
-                      "REJECTED"
-                    ]
-                  },
-                  "image": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "supplierId": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "imageUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
-                    },
-                    "area": {
-                      "type": "number"
-                    },
-                    "contractAddress": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "tokenSymbol": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT",
-                        "PENDING",
-                        "APPROVED",
-                        "DEPLOYED",
-                        "REJECTED"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "supplierId",
-                    "title",
-                    "description",
-                    "imageUrl",
-                    "locationLat",
-                    "locationLng",
-                    "area",
-                    "status",
-                    "createdAt"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      "delete": {
-        "summary": "Delete Project",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "operationId": "delete",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {}
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "204",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/projects/{id}/submit": {
-      "post": {
-        "summary": "Submit Project For Approval",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "operationId": "submit",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {}
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "202",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/projects/review": {
-      "get": {
-        "summary": "List Pending Projects (Admin)",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "operationId": "listPending",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "supplierId": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "description": {
-                        "type": "string"
-                      },
-                      "imageUrl": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "locationLat": {
-                        "type": "number"
-                      },
-                      "locationLng": {
-                        "type": "number"
-                      },
-                      "area": {
-                        "type": "number"
-                      },
-                      "contractAddress": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "tokenSymbol": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "DRAFT",
-                          "PENDING",
-                          "APPROVED",
-                          "DEPLOYED",
-                          "REJECTED"
-                        ]
-                      },
-                      "createdAt": {
-                        "type": "string"
-                      },
-                      "updatedAt": {
-                        "type": "string"
-                      },
-                      "supplierEmail": {
-                        "type": "string",
-                        "format": "email"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "supplierId",
-                      "title",
-                      "description",
-                      "imageUrl",
-                      "locationLat",
-                      "locationLng",
-                      "area",
-                      "status",
-                      "createdAt"
-                    ]
-                  }
-                }
-              }
-            },
-            "headers": {
-              "X-Total-Count": {
-                "description": "Total number of items matching the query",
-                "schema": {
-                  "type": "integer",
-                  "format": "int64"
-                }
-              },
-              "X-Page": {
-                "description": "Current page number (1-based)",
-                "schema": {
-                  "type": "integer",
-                  "format": "int32"
-                }
-              },
-              "X-Limit": {
-                "description": "Page size (items per page)",
-                "schema": {
-                  "type": "integer",
-                  "format": "int32"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/projects/{id}/approve": {
-      "post": {
-        "summary": "Approve Project (Admin)",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "operationId": "approve",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {}
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "supplierId": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "imageUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
-                    },
-                    "area": {
-                      "type": "number"
-                    },
-                    "contractAddress": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "tokenSymbol": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT",
-                        "PENDING",
-                        "APPROVED",
-                        "DEPLOYED",
-                        "REJECTED"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "supplierId",
-                    "title",
-                    "description",
-                    "imageUrl",
-                    "locationLat",
-                    "locationLng",
-                    "area",
-                    "status",
-                    "createdAt"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/projects/{id}/reject": {
-      "post": {
-        "summary": "Reject Project (Admin)",
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "operationId": "reject",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {}
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "supplierId": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "imageUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
-                    },
-                    "area": {
-                      "type": "number"
-                    },
-                    "contractAddress": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "tokenSymbol": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "DRAFT",
-                        "PENDING",
-                        "APPROVED",
-                        "DEPLOYED",
-                        "REJECTED"
-                      ]
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "supplierId",
-                    "title",
-                    "description",
-                    "imageUrl",
-                    "locationLat",
-                    "locationLng",
-                    "area",
-                    "status",
-                    "createdAt"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
+        }
     }
-  },
-  "info": {
-    "version": "1.0.0",
-    "title": "Ledgera REST API - Documentation",
-    "description": "Ledgera REST API - Documentation"
-  },
-  "servers": [
-    {
-      "url": "http://localhost:8080",
-      "description": "Local Server"
-    }
-  ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      },
-      "x-service-token": {
-        "type": "apiKey",
-        "name": "x-service-token",
-        "in": "header"
-      }
-    }
-  }
 }

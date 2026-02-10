@@ -14,9 +14,12 @@ export const ZProject = z.object({
     title: z.string(),
     description: z.string(),
     imageUrl: z.string().url(),
+    auditReportUrl: z.string().url().optional(),
     locationLat: z.number(),
     locationLng: z.number(),
     area: z.number(),
+    carbonAmount: z.number(),
+    pricePerTonne: z.number(),
     contractAddress: z.string().nullable().optional(),
     tokenSymbol: z.string().nullable().optional(),
     status: ZProjectStatus,
@@ -33,7 +36,9 @@ export const ZCreateProjectBody = z.object({
     locationLat: z.number(),
     locationLng: z.number(),
     area: z.number().gt(0),
-    image: ZFile
+    carbonAmount: z.number().gt(0),
+    image: ZFile,
+    auditReport: ZFile
 })
 
 export const ZUpdateProjectBody = z.object({
@@ -42,9 +47,11 @@ export const ZUpdateProjectBody = z.object({
     locationLat: z.number().optional(),
     locationLng: z.number().optional(),
     area: z.number().gt(0).optional(),
+    carbonAmount: z.number().gt(0).optional(),
     contractAddress: z.string().optional(),
     status: ZProjectStatus.optional(),
-    image: ZFile.optional()
+    image: ZFile.optional(),
+    auditReport: ZFile.optional()
 })
 
 export const ZProjectWithSupplier = ZProject.extend({

@@ -31,21 +31,30 @@ func (h *ProjectHandler) Create(c echo.Context) error {
 		func(c echo.Context, req *validation.CreateProjectRequest) (*project.Project, error) {
 			userID := middleware.GetUserID(c)
 
-			file, err := c.FormFile("image")
+			// 1. Get Image (Required)
+			imageFile, err := c.FormFile("image")
 			if err != nil {
 				return nil, echo.NewHTTPError(http.StatusBadRequest, "Image file is required")
 			}
 
-			payload := project.CreateProjectPayload{
-				Title:       req.Title,
-				Description: req.Description,
-				LocationLat: req.LocationLat,
-				LocationLng: req.LocationLng,
-				Area:        req.Area,
-				ImageURL:    "https://pending.upload",
+			// 2. Get Audit Report (Required)
+			auditFile, err := c.FormFile("auditReport")
+			if err != nil {
+				return nil, echo.NewHTTPError(http.StatusBadRequest, "Audit report file is required")
 			}
 
-			return h.projectService.Create(c, payload, userID, file)
+			payload := project.CreateProjectPayload{
+				Title:        req.Title,
+				Description:  req.Description,
+				LocationLat:  req.LocationLat,
+				LocationLng:  req.LocationLng,
+				Area:         req.Area,
+				CarbonAmount: req.CarbonAmount,
+				ImageURL:     "https://pending.upload",
+			}
+
+			// Pass both files to the service
+			return h.projectService.Create(c, payload, userID, imageFile, auditFile)
 		},
 		http.StatusCreated,
 		&validation.CreateProjectRequest{},
@@ -119,10 +128,15 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 		func(c echo.Context, req *validation.UpdateProjectRequest) (*project.Project, error) {
 			userID := middleware.GetUserID(c)
 
-			var fileHeader *multipart.FileHeader
-			file, err := c.FormFile("image")
-			if err == nil && file != nil {
-				fileHeader = file
+			// Check for files (Image and/or AuditReport)
+			var imageHeader *multipart.FileHeader
+			if img, err := c.FormFile("image"); err == nil && img != nil {
+				imageHeader = img
+			}
+
+			var auditHeader *multipart.FileHeader
+			if doc, err := c.FormFile("auditReport"); err == nil && doc != nil {
+				auditHeader = doc
 			}
 
 			var statusPtr *project.ProjectStatus
@@ -137,11 +151,12 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 				LocationLat:     req.LocationLat,
 				LocationLng:     req.LocationLng,
 				Area:            req.Area,
+				CarbonAmount:    req.CarbonAmount,
 				ContractAddress: req.ContractAddress,
 				Status:          statusPtr,
 			}
 
-			return h.projectService.Update(c, req.ID.String(), payload, userID, fileHeader)
+			return h.projectService.Update(c, req.ID.String(), payload, userID, imageHeader, auditHeader)
 		},
 		http.StatusOK,
 		&validation.UpdateProjectRequest{},

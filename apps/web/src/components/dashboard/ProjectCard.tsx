@@ -101,7 +101,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
             <Card className="overflow-hidden bg-white">
                 <div className="relative h-48 w-full cursor-pointer bg-gray-100" onClick={() => setIsDetailsOpen(true)}>
                     {project.imageUrl ? (
-                        <Image src={project.imageUrl} alt={project.title} fill className="object-cover" />
+                        <Image
+                            src={project.imageUrl}
+                            alt={project.title}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover"
+                        />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center text-gray-400">No Image</div>
                     )}

@@ -29,7 +29,8 @@ func NewProjectService(s *server.Server, repo *repository.ProjectRepository, use
 	}
 }
 
-func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectPayload, supplierID string, file *multipart.FileHeader) (*project.Project, error) {
+// Create now accepts optional auditFile
+func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectPayload, supplierID string, imageFile *multipart.FileHeader, auditFile *multipart.FileHeader) (*project.Project, error) {
 	logger := middleware.GetLogger(ctx)
 	logger.Info().Str("supplier_id", supplierID).Str("project_title", payload.Title).Msg("creating new project")
 
@@ -37,41 +38,41 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 		return nil, err
 	}
 
-	// Upload image (skip external upload in tests when uploader is nil)
-	var imageURL string
-	if s.uploader == nil {
-		// Fallback stub URL for tests
-		imageURL = fmt.Sprintf("https://example.com/projects/%s", file.Filename)
-	} else {
-		fileContent, err := file.Open()
-		if err != nil {
-			return nil, fmt.Errorf("failed to open image file: %w", err)
-		}
-		defer fileContent.Close()
-
-		imageURL, err = s.uploader.Upload(ctx.Request().Context(), upload.UploadParams{
-			File:        fileContent,
-			Folder:      "projects",
-			Filename:    file.Filename,
-			UserID:      supplierID,
-			ContentType: file.Header.Get("Content-Type"),
-			Size:        file.Size,
-		})
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to upload image")
-			return nil, fmt.Errorf("failed to upload image: %w", err)
-		}
+	// 1. Upload Image (Required)
+	imageURL, err := s.uploadFile(ctx, imageFile, "projects", supplierID)
+	if err != nil {
+		return nil, err
 	}
+
+	// 2. Upload Audit Report (Optional)
+	var auditReportURL string
+	if auditFile != nil {
+		url, err := s.uploadFile(ctx, auditFile, "documents", supplierID)
+		if err != nil {
+			return nil, err
+		}
+		auditReportURL = url
+	}
+
+	// Define Base Price (Hardcoded for MVP)
+	const INITIAL_MARKET_PRICE = 15.00
 
 	p := project.Project{
 		SupplierID:  supplierID,
 		Title:       payload.Title,
 		Description: payload.Description,
-		ImageURL:    imageURL,
+		
+		ImageURL:       imageURL,
+		AuditReportURL: auditReportURL, // Save the URL
+
 		LocationLat: payload.LocationLat,
 		LocationLng: payload.LocationLng,
 		Area:        payload.Area,
-		Status:      project.ProjectStatusDraft,
+
+		CarbonAmount: payload.CarbonAmount,
+		PricePerTonne:     INITIAL_MARKET_PRICE,
+
+		Status: project.ProjectStatusDraft,
 	}
 
 	createdProject, err := s.repo.Create(ctx.Request().Context(), p)
@@ -92,7 +93,8 @@ func (s *ProjectService) ListBySupplier(ctx echo.Context, supplierID string, pag
 	return s.repo.ListBySupplierPaginated(ctx.Request().Context(), supplierID, page, limit)
 }
 
-func (s *ProjectService) Update(ctx echo.Context, id string, payload project.UpdateProjectPayload, userID string, file *multipart.FileHeader) (*project.Project, error) {
+// Update now accepts optional auditFile
+func (s *ProjectService) Update(ctx echo.Context, id string, payload project.UpdateProjectPayload, userID string, imageFile *multipart.FileHeader, auditFile *multipart.FileHeader) (*project.Project, error) {
 	logger := middleware.GetLogger(ctx)
 	logger.Info().Str("project_id", id).Str("user_id", userID).Msg("updating project")
 
@@ -110,47 +112,61 @@ func (s *ProjectService) Update(ctx echo.Context, id string, payload project.Upd
 	if existing.SupplierID != userID {
 		return nil, echo.NewHTTPError(http.StatusForbidden, "You do not own this project")
 	}
-	// Disallow edits when submitted/approved/deployed
 	if existing.Status == project.ProjectStatusPending || existing.Status == project.ProjectStatusApproved || existing.Status == project.ProjectStatusDeployed {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "Project cannot be edited after submission")
 	}
 
+	// Handle Image Update
 	var newImageURL *string
-	if file != nil {
-		if s.uploader == nil {
-			// Fallback stub URL for tests
-			stub := fmt.Sprintf("https://example.com/projects/%s", file.Filename)
-			newImageURL = &stub
-		} else {
-			fileContent, err := file.Open()
-			if err != nil {
-				return nil, fmt.Errorf("failed to open image file: %w", err)
-			}
-			defer fileContent.Close()
-
-			imageURL, err := s.uploader.Upload(ctx.Request().Context(), upload.UploadParams{
-				File:        fileContent,
-				Folder:      "projects",
-				Filename:    file.Filename,
-				UserID:      userID,
-				ContentType: file.Header.Get("Content-Type"),
-				Size:        file.Size,
-			})
-			if err != nil {
-				logger.Error().Err(err).Msg("failed to upload image")
-				return nil, fmt.Errorf("failed to upload image: %w", err)
-			}
-			newImageURL = &imageURL
+	if imageFile != nil {
+		url, err := s.uploadFile(ctx, imageFile, "projects", userID)
+		if err != nil {
+			return nil, err
 		}
+		newImageURL = &url
 	}
 
-	updated, err := s.repo.Update(ctx.Request().Context(), id, payload, newImageURL)
+	// Handle Audit Report Update
+	var newAuditURL *string
+	if auditFile != nil {
+		url, err := s.uploadFile(ctx, auditFile, "documents", userID)
+		if err != nil {
+			return nil, err
+		}
+		newAuditURL = &url
+	}
+
+	// Pass both URLs to the Repo
+	updated, err := s.repo.Update(ctx.Request().Context(), id, payload, newImageURL, newAuditURL)
 	if err != nil {
 		return nil, err
 	}
 	return updated, nil
 }
 
+// Helper to reduce duplication
+func (s *ProjectService) uploadFile(ctx echo.Context, file *multipart.FileHeader, folder string, userID string) (string, error) {
+	if s.uploader == nil {
+		return fmt.Sprintf("https://example.com/%s/%s", folder, file.Filename), nil
+	}
+
+	fileContent, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer fileContent.Close()
+
+	return s.uploader.Upload(ctx.Request().Context(), upload.UploadParams{
+		File:        fileContent,
+		Folder:      folder,
+		Filename:    file.Filename,
+		UserID:      userID,
+		ContentType: file.Header.Get("Content-Type"),
+		Size:        file.Size,
+	})
+}
+
+// ... (Rest of the service methods: Delete, SendForApproval, ListPendingForReview, Approve, Reject, ensureAdmin remain unchanged) ...
 func (s *ProjectService) Delete(ctx echo.Context, id string, userID string) error {
 	logger := middleware.GetLogger(ctx)
 	logger.Info().Str("project_id", id).Str("user_id", userID).Msg("deleting project")
@@ -251,78 +267,78 @@ func (s *ProjectService) Approve(ctx echo.Context, id string, adminID string) (*
 	updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusApproved)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to approve project")
-		return nil, err
-	}
+        return nil, err
+    }
 
-	return updated, nil
+    return updated, nil
 }
 
 func (s *ProjectService) Reject(ctx echo.Context, id string, adminID string) (*project.Project, error) {
-	logger := middleware.GetLogger(ctx)
-	logger.Info().Str("project_id", id).Str("admin_id", adminID).Msg("rejecting project")
+    logger := middleware.GetLogger(ctx)
+    logger.Info().Str("project_id", id).Str("admin_id", adminID).Msg("rejecting project")
 
-	if err := s.ensureAdmin(ctx, adminID); err != nil {
-		return nil, err
-	}
+    if err := s.ensureAdmin(ctx, adminID); err != nil {
+        return nil, err
+    }
 
-	existing, err := s.repo.FindByID(ctx.Request().Context(), id)
-	if err != nil {
-		return nil, err
-	}
-	if existing == nil {
-		return nil, echo.NewHTTPError(http.StatusNotFound, "Project not found")
-	}
-	if existing.Status != project.ProjectStatusPending {
-		return nil, echo.NewHTTPError(http.StatusBadRequest, "Only pending projects can be rejected")
-	}
+    existing, err := s.repo.FindByID(ctx.Request().Context(), id)
+    if err != nil {
+        return nil, err
+    }
+    if existing == nil {
+        return nil, echo.NewHTTPError(http.StatusNotFound, "Project not found")
+    }
+    if existing.Status != project.ProjectStatusPending {
+        return nil, echo.NewHTTPError(http.StatusBadRequest, "Only pending projects can be rejected")
+    }
 
-	updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusRejected)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to reject project")
-		return nil, err
-	}
+    updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusRejected)
+    if err != nil {
+        logger.Error().Err(err).Msg("failed to reject project")
+        return nil, err
+    }
 
-	return updated, nil
+    return updated, nil
 }
 
 func (s *ProjectService) ensureAdmin(ctx echo.Context, clerkID string) error {
-	ctxRole := strings.ToUpper(strings.TrimSpace(middleware.GetUserRole(ctx)))
-	logger := middleware.GetLogger(ctx)
+    ctxRole := strings.ToUpper(strings.TrimSpace(middleware.GetUserRole(ctx)))
+    logger := middleware.GetLogger(ctx)
 
-	// DEBUG LOGGING
-	logger.Info().
-		Str("context_role", ctxRole).
-		Str("clerk_id", clerkID).
-		Msg("DEBUG: EnsureAdmin Check")
+    // DEBUG LOGGING
+    logger.Info().
+        Str("context_role", ctxRole).
+        Str("clerk_id", clerkID).
+        Msg("DEBUG: EnsureAdmin Check")
 
-	if ctxRole == string(user.RoleAdmin) {
-		return nil
-	}
+    if ctxRole == string(user.RoleAdmin) {
+        return nil
+    }
 
-	if clerkID == "" {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
-	}
+    if clerkID == "" {
+        return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+    }
 
-	logger.Debug().Str("clerk_id", clerkID).Msg("verifying admin access via repository")
+    logger.Debug().Str("clerk_id", clerkID).Msg("verifying admin access via repository")
 
-	adminUser, err := s.userRepo.FindByClerkID(ctx.Request().Context(), clerkID)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to load user for admin verification")
-		return err
-	}
-	if adminUser == nil {
-		return echo.NewHTTPError(http.StatusForbidden, "User record missing")
-	}
+    adminUser, err := s.userRepo.FindByClerkID(ctx.Request().Context(), clerkID)
+    if err != nil {
+        logger.Error().Err(err).Msg("failed to load user for admin verification")
+        return err
+    }
+    if adminUser == nil {
+        return echo.NewHTTPError(http.StatusForbidden, "User record missing")
+    }
 
-	// DEBUG LOGGING
-	logger.Info().
-		Str("db_role", string(adminUser.Role)).
-		Str("db_user_id", adminUser.ID.String()).
-		Msg("DEBUG: EnsureAdmin DB Result")
+    // DEBUG LOGGING
+    logger.Info().
+        Str("db_role", string(adminUser.Role)).
+        Str("db_user_id", adminUser.ID.String()).
+        Msg("DEBUG: EnsureAdmin DB Result")
 
-	if adminUser.Role != user.RoleAdmin {
-		return echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Admin access required. ContextRole=%s, DBRole=%s", ctxRole, adminUser.Role))
-	}
+    if adminUser.Role != user.RoleAdmin {
+        return echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Admin access required. ContextRole=%s, DBRole=%s", ctxRole, adminUser.Role))
+    }
 
-	return nil
+    return nil
 }

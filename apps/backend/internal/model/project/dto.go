@@ -15,13 +15,14 @@ type ProjectWithSupplier struct {
 // ------------------------------------------------------------
 
 type CreateProjectPayload struct {
-	// SupplierID is usually inferred from the Auth Token, so we might not need it in the JSON body.
-	Title       string  `json:"title" validate:"required,min=3,max=150"`
-	Description string  `json:"description" validate:"required,min=10"`
-	ImageURL    string  `json:"imageUrl" validate:"required,url"`
-	LocationLat float64 `json:"locationLat" validate:"required,latitude"`
-	LocationLng float64 `json:"locationLng" validate:"required,longitude"`
-	Area        float64 `json:"area" validate:"required,gt=0"`
+	Title       string `json:"title" validate:"required,min=3,max=150"`
+	Description string `json:"description" validate:"required,min=10"`
+	ImageURL    string `json:"imageUrl" validate:"required,url"`
+
+	LocationLat  float64 `json:"locationLat" validate:"required,latitude"`
+	LocationLng  float64 `json:"locationLng" validate:"required,longitude"`
+	Area         float64 `json:"area" validate:"required,gt=0"`
+	CarbonAmount float64 `json:"carbonAmount" validate:"required,gt=0"`
 }
 
 func (p *CreateProjectPayload) Validate() error {
@@ -42,6 +43,7 @@ type UpdateProjectPayload struct {
 	LocationLng     *float64       `json:"locationLng" validate:"omitempty,longitude"`
 	Area            *float64       `json:"area" validate:"omitempty,gt=0"`
 	Status          *ProjectStatus `json:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`
+	CarbonAmount    *float64       `json:"carbonAmount" validate:"omitempty,gt=0"`
 }
 
 func (p *UpdateProjectPayload) Validate() error {
@@ -106,12 +108,13 @@ func (p *DeleteProjectPayload) Validate() error {
 // ------------------------------------------------------------
 
 type CreateProjectRequestPayload struct {
-	Title       string  `json:"title" validate:"required"`
-	Description string  `json:"description" validate:"required"`
-	ImageURL    string  `json:"imageUrl" validate:"required,url"`
-	LocationLat float64 `json:"locationLat" validate:"required"`
-	LocationLng float64 `json:"locationLng" validate:"required"`
-	Area        float64 `json:"area" validate:"required"`
+	Title        string  `json:"title" validate:"required"`
+	Description  string  `json:"description" validate:"required"`
+	ImageURL     string  `json:"imageUrl" validate:"required,url"`
+	LocationLat  float64 `json:"locationLat" validate:"required"`
+	LocationLng  float64 `json:"locationLng" validate:"required"`
+	Area         float64 `json:"area" validate:"required"`
+	CarbonAmount float64 `json:"carbonAmount" validate:"required"`
 }
 
 func (p *CreateProjectRequestPayload) Validate() error {
@@ -119,4 +122,3 @@ func (p *CreateProjectRequestPayload) Validate() error {
 	return validate.Struct(p)
 }
 
-// ------------------------------------------------------------

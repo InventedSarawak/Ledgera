@@ -10,9 +10,12 @@ export const ZProject = z.object({
     title: z.string(),
     description: z.string(),
     imageUrl: z.string().url(),
+    auditReportUrl: z.string().url().optional(),
     locationLat: z.number(),
     locationLng: z.number(),
     area: z.number(),
+    carbonAmount: z.number(),
+    pricePerTonne: z.number(),
     contractAddress: z.string().nullable().optional(),
     tokenSymbol: z.string().nullable().optional(),
     status: ZProjectStatus
@@ -27,7 +30,8 @@ export const ZCreateProjectRequest = z.object({
     description: z.string().min(10),
     locationLat: z.coerce.number(),
     locationLng: z.coerce.number(),
-    area: z.coerce.number().positive()
+    area: z.coerce.number().positive(),
+    carbonAmount: z.coerce.number().positive()
 })
 
 export const ZUpdateProjectRequest = z.object({
@@ -36,6 +40,7 @@ export const ZUpdateProjectRequest = z.object({
     locationLat: z.coerce.number().optional(),
     locationLng: z.coerce.number().optional(),
     area: z.coerce.number().positive().optional(),
+    carbonAmount: z.coerce.number().positive().optional(),
     contractAddress: z.string().optional(),
     status: ZProjectStatus.optional()
 })

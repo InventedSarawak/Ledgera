@@ -1,6 +1,10 @@
 package user
 
-import "github.com/inventedsarawak/ledgera/internal/model"
+import (
+	"time"
+
+	"github.com/inventedsarawak/ledgera/internal/model"
+)
 
 type UserRole string
 
@@ -13,8 +17,9 @@ const (
 type User struct {
 	model.Base
 
-	ClerkID       string  `json:"clerkId" db:"clerk_id"`
-	Email         string  `json:"email" db:"email"`
-	WalletAddress *string `json:"walletAddress" db:"wallet_address"`
-	Role          UserRole  `json:"role" db:"role"`
+	ClerkID       string     `json:"clerkId" db:"clerk_id"`
+	Email         string     `json:"email" db:"email"`
+	WalletAddress *string    `json:"walletAddress" db:"wallet_address"`
+	Role          UserRole   `json:"role" db:"role"`
+	DeletedAt     *time.Time `json:"deletedAt" db:"deleted_at"`
 }

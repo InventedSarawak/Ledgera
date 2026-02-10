@@ -7,6 +7,9 @@ export interface Project {
     locationLng: number
     area: number
     imageUrl: string
+    auditReportUrl?: string
+    carbonAmount: number
+    pricePerTonne: number
     supplierEmail?: string
     status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'DEPLOYED' | 'REJECTED'
     createdAt: string

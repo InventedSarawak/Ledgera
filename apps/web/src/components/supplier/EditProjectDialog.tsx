@@ -37,10 +37,12 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     const [locationLat, setLocationLat] = useState(String(project.locationLat))
     const [locationLng, setLocationLng] = useState(String(project.locationLng))
     const [file, setFile] = useState<File | null>(null)
+    const [auditReport, setAuditReport] = useState<File | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     // Single-step form (removed step-based flow)
     const [area, setArea] = useState(String((project.area ?? '') as unknown as string))
+    const [carbonAmount, setCarbonAmount] = useState(String((project.carbonAmount ?? '') as unknown as string))
     // Top-left is represented by locationLat/locationLng; map removed
 
     const schema = z.object({
@@ -67,6 +69,14 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
             (v) => (typeof v === 'string' ? parseFloat(v) : v),
             z.number({ invalid_type_error: 'Area must be a number' }).gt(0, 'Area must be greater than 0')
         ),
+        carbonAmount: z
+            .preprocess(
+                (v) => (typeof v === 'string' ? parseFloat(v) : v),
+                z
+                    .number({ invalid_type_error: 'Carbon amount must be a number' })
+                    .gt(0, 'Carbon amount must be greater than 0')
+            )
+            .optional(),
         file: z
             .instanceof(File)
             .refine((f) => f.size <= 5 * 1024 * 1024, 'Image must be 5MB or smaller')
@@ -81,9 +91,11 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
             setLocationLat(String(project.locationLat))
             setLocationLng(String(project.locationLng))
             setFile(null)
+            setAuditReport(null)
             setError(null)
             setFieldErrors({})
             setArea(String((project.area ?? '') as unknown as string))
+            setCarbonAmount(String((project.carbonAmount ?? '') as unknown as string))
         }
         onOpenChange(value)
     }
@@ -96,7 +108,9 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
             if (locationLat) formData.append('locationLat', locationLat)
             if (locationLng) formData.append('locationLng', locationLng)
             if (file) formData.append('image', file)
+            if (auditReport) formData.append('auditReport', auditReport)
             if (area) formData.append('area', area)
+            if (carbonAmount) formData.append('carbonAmount', carbonAmount)
             const token = await getToken()
             const response = await axiosInstance.patch(`/projects/${project.id}`, formData, {
                 headers: {
@@ -121,7 +135,15 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         setError(null)
         setFieldErrors({})
 
-        const parsed = schema.safeParse({ title, description, locationLat, locationLng, area, file: file ?? undefined })
+        const parsed = schema.safeParse({
+            title,
+            description,
+            locationLat,
+            locationLng,
+            area,
+            carbonAmount,
+            file: file ?? undefined
+        })
         if (!parsed.success) {
             const errs: Record<string, string> = {}
             for (const issue of parsed.error.issues) {
@@ -238,6 +260,40 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                                     {fieldErrors.file}
                                 </div>
                             )}
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="carbonAmount" className="text-right">
+                                Carbon Amount (tonnes)
+                            </Label>
+                            <Input
+                                id="carbonAmount"
+                                type="number"
+                                step="any"
+                                value={carbonAmount}
+                                onChange={(e) => setCarbonAmount(e.target.value)}
+                                className="col-span-3"
+                                disabled={isReadOnly}
+                            />
+                            {fieldErrors.carbonAmount && (
+                                <div className="col-start-2 col-span-3 text-xs text-destructive">
+                                    {fieldErrors.carbonAmount}
+                                </div>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="auditReport" className="text-right">
+                                Audit Report (Optional)
+                            </Label>
+                            <Input
+                                id="auditReport"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) setAuditReport(e.target.files[0])
+                                }}
+                                className="col-span-3 cursor-pointer"
+                                disabled={isReadOnly}
+                            />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="area" className="text-right">

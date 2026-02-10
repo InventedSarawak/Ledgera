@@ -90,7 +90,7 @@ export function AdminDashboard() {
     const errorMessage = error?.response?.data?.message ?? error?.message
 
     const renderSkeleton = () => (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, index) => (
                 <Card key={index}>
                     <CardHeader className="gap-3">
@@ -150,7 +150,7 @@ export function AdminDashboard() {
                 </Card>
             ) : (
                 <>
-                    <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {projects.map((project: Project) => {
                             const approving = approveMutation.isPending && approveMutation.variables === project.id
                             const rejecting = rejectMutation.isPending && rejectMutation.variables === project.id
@@ -162,7 +162,9 @@ export function AdminDashboard() {
                                         <Image
                                             src={project.imageUrl}
                                             alt={project.title}
-                                            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                            className="object-cover transition-transform duration-300 hover:scale-105"
                                         />
                                     </div>
                                     <CardHeader className="gap-2">
@@ -199,7 +201,34 @@ export function AdminDashboard() {
                                                 <span className="font-medium text-foreground">Longitude:</span>{' '}
                                                 {project.locationLng}
                                             </div>
+                                            <div>
+                                                <span className="font-medium text-foreground">Carbon Amount:</span>{' '}
+                                                {project.carbonAmount.toFixed(2)} tonnes
+                                            </div>
                                         </div>
+                                        {project.auditReportUrl && (
+                                            <div className="pt-2">
+                                                <a
+                                                    href={project.auditReportUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+                                                    <svg
+                                                        className="size-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                        />
+                                                    </svg>
+                                                    View Audit Report
+                                                </a>
+                                            </div>
+                                        )}
                                         <div className="flex flex-wrap gap-2 pt-2">
                                             <Button
                                                 onClick={() => approveMutation.mutate(project.id)}

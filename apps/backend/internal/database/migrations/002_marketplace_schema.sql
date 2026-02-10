@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL,
     wallet_address TEXT UNIQUE,          
     role user_role NOT NULL DEFAULT 'BUYER',
+    
+    deleted_at TIMESTAMP,
+    
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -42,9 +45,9 @@ DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_trigger
-        WHERE tgname = 'set_timestamp' AND tgrelid = 'users'::regclass
+        WHERE tgname = 'set_timestamp_users' AND tgrelid = 'users'::regclass
     ) THEN
-        CREATE TRIGGER set_timestamp
+        CREATE TRIGGER set_timestamp_users
         BEFORE UPDATE ON users
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_set_updated_at();
@@ -61,9 +64,15 @@ CREATE TABLE IF NOT EXISTS projects (
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     image_url TEXT NOT NULL,
+
+    audit_report_url TEXT,
+    
     location_lat DECIMAL(9,6),
     location_lng DECIMAL(9,6),
     area DECIMAL,
+    
+    carbon_amount_total NUMERIC(20, 2) DEFAULT 0, 
+    price_per_tonne NUMERIC(20, 2) DEFAULT 0, 
     
     contract_address TEXT UNIQUE,  
     token_symbol TEXT,               
@@ -77,9 +86,9 @@ DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_trigger
-        WHERE tgname = 'set_timestamp' AND tgrelid = 'projects'::regclass
+        WHERE tgname = 'set_timestamp_projects' AND tgrelid = 'projects'::regclass
     ) THEN
-        CREATE TRIGGER set_timestamp
+        CREATE TRIGGER set_timestamp_projects
         BEFORE UPDATE ON projects
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_set_updated_at();
@@ -96,12 +105,12 @@ CREATE TABLE IF NOT EXISTS listings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID REFERENCES projects(id),
     
-    -- Blockchain Integrity: Ensure we never double-sync the same listing ID
-    listing_id_on_chain BIGINT NOT NULL UNIQUE, 
+    listing_id_on_chain NUMERIC NOT NULL UNIQUE, 
     
     seller_address TEXT NOT NULL,
-    price_per_token DECIMAL NOT NULL,
-    quantity_available BIGINT NOT NULL,
+    
+    price_per_token NUMERIC(36, 18) NOT NULL,
+    quantity_available NUMERIC(36, 18) NOT NULL,
     
     active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -112,9 +121,9 @@ DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_trigger
-        WHERE tgname = 'set_timestamp' AND tgrelid = 'listings'::regclass
+        WHERE tgname = 'set_timestamp_listings' AND tgrelid = 'listings'::regclass
     ) THEN
-        CREATE TRIGGER set_timestamp
+        CREATE TRIGGER set_timestamp_listings
         BEFORE UPDATE ON listings
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_set_updated_at();
@@ -133,7 +142,7 @@ CREATE TABLE IF NOT EXISTS certificates (
     project_id UUID REFERENCES projects(id),
     
     tx_hash TEXT NOT NULL UNIQUE,     
-    amount_retired DECIMAL NOT NULL,
+    amount_retired NUMERIC(36, 18) NOT NULL,
     retirement_reason TEXT,
     pdf_url TEXT,                     
     

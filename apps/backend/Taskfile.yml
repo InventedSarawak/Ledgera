@@ -1,5 +1,7 @@
 version: '3'
 
+dotenv: ['.env']
+
 vars:
     LEDGERA_DB_DSN: '{{.LEDGERA_DB_DSN | default ""}}'
 
@@ -49,7 +51,7 @@ tasks:
         deps: [confirm]
         cmds:
             - echo 'Running down migrations...'
-            - tern migrate -m ./internal/database/migrations --conn-string {{.LEDGERA_DB_DSN}} --down
+            - tern migrate -m ./internal/database/migrations --conn-string {{.LEDGERA_DB_DSN}} --destination 0
 
     tidy:
         desc: format all .go files, and tidy and vendor module dependencies

@@ -20,7 +20,7 @@ export function ProjectDetailsDialog({ project, open, onOpenChange }: ProjectDet
             <DialogContent className="max-h-[90vh] max-w-2xl overflow-hidden p-0">
                 <div className="relative h-64 w-full bg-slate-100">
                     {project.imageUrl ? (
-                        <Image src={project.imageUrl} alt={project.title} fill className="object-cover" />
+                        <Image src={project.imageUrl} alt={project.title} fill sizes="100vw" className="object-cover" />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center text-slate-400">
                             No Image Available
