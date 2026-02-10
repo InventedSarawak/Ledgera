@@ -16,16 +16,18 @@ import (
 )
 
 type ProjectService struct {
-	repo     *repository.ProjectRepository
-	userRepo *repository.UserRepository
-	uploader *upload.Client
+	repo              *repository.ProjectRepository
+	userRepo          *repository.UserRepository
+	uploader          *upload.Client
+	blockchainService *BlockchainService
 }
 
-func NewProjectService(s *server.Server, repo *repository.ProjectRepository, userRepo *repository.UserRepository) *ProjectService {
+func NewProjectService(s *server.Server, repo *repository.ProjectRepository, userRepo *repository.UserRepository, blockchainService *BlockchainService) *ProjectService {
 	return &ProjectService{
-		repo:     repo,
-		userRepo: userRepo,
-		uploader: s.Uploader,
+		repo:              repo,
+		userRepo:          userRepo,
+		uploader:          s.Uploader,
+		blockchainService: blockchainService,
 	}
 }
 
@@ -267,10 +269,27 @@ func (s *ProjectService) Approve(ctx echo.Context, id string, adminID string) (*
 	updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusApproved)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to approve project")
-        return nil, err
-    }
+		return nil, err
+	}
 
-    return updated, nil
+	// Trigger blockchain deployment
+	if s.blockchainService != nil {
+		go func() {
+			// Deploy in background to avoid blocking the HTTP response
+			if err := s.blockchainService.DeployProject(ctx, id); err != nil {
+				logger.Error().
+					Err(err).
+					Str("project_id", id).
+					Msg("failed to deploy project token in background")
+				// Note: In production, you might want to implement a retry mechanism
+				// or update the project status to indicate deployment failure
+			}
+		}()
+	} else {
+		logger.Warn().Msg("blockchain service not available, skipping token deployment")
+	}
+
+	return updated, nil
 }
 
 func (s *ProjectService) Reject(ctx echo.Context, id string, adminID string) (*project.Project, error) {

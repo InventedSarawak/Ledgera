@@ -59,18 +59,18 @@ type StorageBucketConfig struct {
 }
 
 type BlockchainConfig struct {
-	RpcUrl          string `koanf:"rpc_url" validate:"required,url"`
-	ChainID         int    `koanf:"chain_id" validate:"required"`
-	FactoryAddress  string `koanf:"factory_address" validate:"required"`
-	CounterAddress  string `koanf:"counter_address" validate:"required"`
-	AdminPrivateKey string `koanf:"admin_private_key" validate:"required"`
+	RpcUrl             string `koanf:"rpc_url" validate:"required,url"`
+	ChainID            int    `koanf:"chain_id" validate:"required"`
+	RegistryAddress    string `koanf:"registry_address" validate:"required"`
+	MarketplaceAddress string `koanf:"marketplace_address" validate:"required"`
+	AdminPrivateKey    string `koanf:"admin_private_key" validate:"required"`
 }
 
 type RedisConfig struct {
 	Address string `koanf:"address" validate:"required"`
 }
 type AuthConfig struct {
-	SecretKey string `koanf:"secret_key" validate:"required"`
+	SecretKey  string `koanf:"secret_key" validate:"required"`
 	MockUserID string `koanf:"mock_user_id"`
 }
 
