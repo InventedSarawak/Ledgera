@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math/big"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -16,18 +17,26 @@ import (
 )
 
 type ProjectService struct {
-	repo              *repository.ProjectRepository
-	userRepo          *repository.UserRepository
-	uploader          *upload.Client
-	blockchainService *BlockchainService
+	repo               *repository.ProjectRepository
+	userRepo           *repository.UserRepository
+	uploader           *upload.Client
+	blockchainService  *BlockchainService
+	marketplaceService *MarketplaceService
 }
 
-func NewProjectService(s *server.Server, repo *repository.ProjectRepository, userRepo *repository.UserRepository, blockchainService *BlockchainService) *ProjectService {
+func NewProjectService(
+	s *server.Server,
+	repo *repository.ProjectRepository,
+	userRepo *repository.UserRepository,
+	blockchainService *BlockchainService,
+	marketplaceService *MarketplaceService,
+) *ProjectService {
 	return &ProjectService{
-		repo:              repo,
-		userRepo:          userRepo,
-		uploader:          s.Uploader,
-		blockchainService: blockchainService,
+		repo:               repo,
+		userRepo:           userRepo,
+		uploader:           s.Uploader,
+		blockchainService:  blockchainService,
+		marketplaceService: marketplaceService,
 	}
 }
 
@@ -63,7 +72,7 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 		SupplierID:  supplierID,
 		Title:       payload.Title,
 		Description: payload.Description,
-		
+
 		ImageURL:       imageURL,
 		AuditReportURL: auditReportURL, // Save the URL
 
@@ -71,8 +80,8 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 		LocationLng: payload.LocationLng,
 		Area:        payload.Area,
 
-		CarbonAmount: payload.CarbonAmount,
-		PricePerTonne:     INITIAL_MARKET_PRICE,
+		CarbonAmount:  payload.CarbonAmount,
+		PricePerTonne: INITIAL_MARKET_PRICE,
 
 		Status: project.ProjectStatusDraft,
 	}
@@ -293,71 +302,121 @@ func (s *ProjectService) Approve(ctx echo.Context, id string, adminID string) (*
 }
 
 func (s *ProjectService) Reject(ctx echo.Context, id string, adminID string) (*project.Project, error) {
-    logger := middleware.GetLogger(ctx)
-    logger.Info().Str("project_id", id).Str("admin_id", adminID).Msg("rejecting project")
+	logger := middleware.GetLogger(ctx)
+	logger.Info().Str("project_id", id).Str("admin_id", adminID).Msg("rejecting project")
 
-    if err := s.ensureAdmin(ctx, adminID); err != nil {
-        return nil, err
-    }
+	if err := s.ensureAdmin(ctx, adminID); err != nil {
+		return nil, err
+	}
 
-    existing, err := s.repo.FindByID(ctx.Request().Context(), id)
-    if err != nil {
-        return nil, err
-    }
-    if existing == nil {
-        return nil, echo.NewHTTPError(http.StatusNotFound, "Project not found")
-    }
-    if existing.Status != project.ProjectStatusPending {
-        return nil, echo.NewHTTPError(http.StatusBadRequest, "Only pending projects can be rejected")
-    }
+	existing, err := s.repo.FindByID(ctx.Request().Context(), id)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "Project not found")
+	}
+	if existing.Status != project.ProjectStatusPending {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "Only pending projects can be rejected")
+	}
 
-    updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusRejected)
-    if err != nil {
-        logger.Error().Err(err).Msg("failed to reject project")
-        return nil, err
-    }
+	updated, err := s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusRejected)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to reject project")
+		return nil, err
+	}
 
-    return updated, nil
+	return updated, nil
 }
 
 func (s *ProjectService) ensureAdmin(ctx echo.Context, clerkID string) error {
-    ctxRole := strings.ToUpper(strings.TrimSpace(middleware.GetUserRole(ctx)))
-    logger := middleware.GetLogger(ctx)
+	ctxRole := strings.ToUpper(strings.TrimSpace(middleware.GetUserRole(ctx)))
+	logger := middleware.GetLogger(ctx)
 
-    // DEBUG LOGGING
-    logger.Info().
-        Str("context_role", ctxRole).
-        Str("clerk_id", clerkID).
-        Msg("DEBUG: EnsureAdmin Check")
+	// DEBUG LOGGING
+	logger.Info().
+		Str("context_role", ctxRole).
+		Str("clerk_id", clerkID).
+		Msg("DEBUG: EnsureAdmin Check")
 
-    if ctxRole == string(user.RoleAdmin) {
-        return nil
-    }
+	if ctxRole == string(user.RoleAdmin) {
+		return nil
+	}
 
-    if clerkID == "" {
-        return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
-    }
+	if clerkID == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
 
-    logger.Debug().Str("clerk_id", clerkID).Msg("verifying admin access via repository")
+	logger.Debug().Str("clerk_id", clerkID).Msg("verifying admin access via repository")
 
-    adminUser, err := s.userRepo.FindByClerkID(ctx.Request().Context(), clerkID)
-    if err != nil {
-        logger.Error().Err(err).Msg("failed to load user for admin verification")
-        return err
-    }
-    if adminUser == nil {
-        return echo.NewHTTPError(http.StatusForbidden, "User record missing")
-    }
+	adminUser, err := s.userRepo.FindByClerkID(ctx.Request().Context(), clerkID)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to load user for admin verification")
+		return err
+	}
+	if adminUser == nil {
+		return echo.NewHTTPError(http.StatusForbidden, "User record missing")
+	}
 
-    // DEBUG LOGGING
-    logger.Info().
-        Str("db_role", string(adminUser.Role)).
-        Str("db_user_id", adminUser.ID.String()).
-        Msg("DEBUG: EnsureAdmin DB Result")
+	// DEBUG LOGGING
+	logger.Info().
+		Str("db_role", string(adminUser.Role)).
+		Str("db_user_id", adminUser.ID.String()).
+		Msg("DEBUG: EnsureAdmin DB Result")
 
-    if adminUser.Role != user.RoleAdmin {
-        return echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Admin access required. ContextRole=%s, DBRole=%s", ctxRole, adminUser.Role))
-    }
+	if adminUser.Role != user.RoleAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Admin access required. ContextRole=%s, DBRole=%s", ctxRole, adminUser.Role))
+	}
 
-    return nil
+	return nil
+}
+
+func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID string) error {
+	p, err := s.repo.FindByID(ctx.Request().Context(), projectID)
+	if err != nil {
+		return err
+	}
+	if p == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "project not found")
+	}
+
+	if p.SupplierID != userID {
+		return echo.NewHTTPError(http.StatusForbidden, "you are not the owner of this project")
+	}
+
+	if p.Status != project.ProjectStatusApproved {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("project status is %s, must be APPROVED to mint", p.Status))
+	}
+
+	// Ensure contract is deployed (in case background job failed or hasn't run)
+	if p.ContractAddress == nil || *p.ContractAddress == "" {
+		// Deploy now synchronously
+		if err := s.blockchainService.DeployProject(ctx, projectID); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to deploy project contract").SetInternal(err)
+		}
+	}
+
+	// Calculate amount in Wei (18 decimals)
+	amountWei := new(big.Float).Mul(big.NewFloat(p.CarbonAmount), big.NewFloat(1e18))
+	amountBigInt, _ := amountWei.Int(nil)
+
+	// Call Blockchain Service
+	if err := s.blockchainService.MintProjectTokens(ctx.Request().Context(), projectID, amountBigInt); err != nil {
+		return err
+	}
+
+	// Update Status to DEPLOYED
+	if _, err := s.repo.UpdateStatus(ctx.Request().Context(), projectID, project.ProjectStatusDeployed); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update project status").SetInternal(err)
+	}
+
+	// We list the entire minted amount at 0.1 ETH per tonne of CO2
+	// This is a temporary hardcoded price as per user request
+	if _, err := s.marketplaceService.CreateListing(ctx, projectID, userID, p.CarbonAmount, 0.1); err != nil {
+		// Log the error but don't fail the request completely since tokens are already minted
+		// Ideally, we should have a way to retry this or alert the user
+		return echo.NewHTTPError(http.StatusPartialContent, "tokens minted successfully, but failed to create marketplace listing").SetInternal(err)
+	}
+
+	return nil
 }

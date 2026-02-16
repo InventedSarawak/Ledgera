@@ -2,7 +2,6 @@ package validation
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 )
 
 // ============================================================================
@@ -68,21 +67,6 @@ func (r *ListMarketplaceRequest) Validate() error {
 	}
 
 	return nil
-}
-
-// ============================================================================
-// Token Minting Validation
-// ============================================================================
-
-type MintTokenRequest struct {
-	ProjectID uuid.UUID `json:"projectId" param:"id" validate:"required,uuid"`
-	Amount    float64   `json:"amount" validate:"required,gt=0"`
-	ToAddress string    `json:"toAddress" validate:"required,eth_addr"`
-}
-
-func (r *MintTokenRequest) Validate() error {
-	validate := validator.New()
-	return validate.Struct(r)
 }
 
 // ============================================================================

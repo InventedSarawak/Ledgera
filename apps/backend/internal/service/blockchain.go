@@ -17,13 +17,15 @@ type BlockchainService struct {
 	server      *server.Server
 	client      *blockchain.Client
 	projectRepo *repository.ProjectRepository
+	userRepo    *repository.UserRepository
 }
 
-func NewBlockchainService(s *server.Server, projectRepo *repository.ProjectRepository) *BlockchainService {
+func NewBlockchainService(s *server.Server, projectRepo *repository.ProjectRepository, userRepo *repository.UserRepository) *BlockchainService {
 	return &BlockchainService{
 		server:      s,
 		client:      s.Blockchain,
 		projectRepo: projectRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -79,23 +81,20 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 	// 5. Update project in database
 	payload := project.UpdateProjectPayload{
 		ContractAddress: &tokenAddress,
-		Status:          ptrProjectStatus(project.ProjectStatusDeployed),
+		TokenSymbol:     &tokenSymbol,
+		// Status:          ptrProjectStatus(project.ProjectStatusDeployed), // Do not set to DEPLOYED yet, wait for minting
 	}
 
 	_, err = s.projectRepo.Update(ctx.Request().Context(), projectID, payload, nil, nil)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to update project with contract address")
+		logger.Error().Err(err).Msg("failed to update project with contract address and symbol")
 		return fmt.Errorf("failed to update project: %w", err)
 	}
-
-	// 6. Update token_symbol in project
-	// We need a separate update for token_symbol since it's not in UpdateProjectPayload
-	// For now, we'll use a direct SQL update via the repository
-	// You may want to add a dedicated method in ProjectRepository for this
 
 	logger.Info().
 		Str("project_id", projectID).
 		Str("contract_address", tokenAddress).
+		Str("token_symbol", tokenSymbol).
 		Msg("project deployed successfully")
 
 	return nil
@@ -117,8 +116,8 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 	}
 
 	// 2. Validate project status
-	if proj.Status != project.ProjectStatusDeployed {
-		return fmt.Errorf("only deployed projects can mint tokens")
+	if proj.Status != project.ProjectStatusDeployed && proj.Status != project.ProjectStatusApproved {
+		return fmt.Errorf("project must be approved or deployed to mint tokens")
 	}
 
 	if proj.ContractAddress == nil || *proj.ContractAddress == "" {
@@ -126,20 +125,18 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 	}
 
 	// 3. Get supplier's wallet address
-	// For now, we'll mint to the admin address (the contract owner)
-	// In production, you'd fetch the supplier's wallet from the User table
-	// supplierAddress := proj.SupplierID // This should be the wallet address
+	supplier, err := s.userRepo.FindByClerkID(ctx, proj.SupplierID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch supplier: %w", err)
+	}
+	if supplier == nil {
+		return fmt.Errorf("supplier not found")
+	}
+	if supplier.WalletAddress == nil || *supplier.WalletAddress == "" {
+		return fmt.Errorf("supplier has no wallet address configured")
+	}
 
-	// Temporary: Use admin address as the recipient
-	// You'll need to update this when you add wallet_address to users
-	adminAddress := s.server.Config.Blockhain.AdminPrivateKey // This is wrong, need to derive address
-	// Better approach: Derive address from private key
-	// For now, we'll pass the supplier's Clerk ID and expect them to have a wallet_address
-
-	// TODO: Fetch supplier user and get their wallet_address
-	// For MVP, we'll use a placeholder or admin address
-
-	recipientAddress := adminAddress // Placeholder - needs to be supplier's wallet
+	recipientAddress := *supplier.WalletAddress
 
 	// 4. Mint tokens via blockchain client
 	err = s.client.MintTokens(ctx, *proj.ContractAddress, recipientAddress, amount)
@@ -177,6 +174,6 @@ func (s *BlockchainService) generateTokenSymbol(title string) string {
 }
 
 // Helper function to create pointer to ProjectStatus
-func ptrProjectStatus(status project.ProjectStatus) *project.ProjectStatus {
-	return &status
-}
+// func ptrProjectStatus(status project.ProjectStatus) *project.ProjectStatus {
+// 	return &status
+// }

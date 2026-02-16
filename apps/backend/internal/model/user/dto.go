@@ -10,10 +10,10 @@ import (
 // ------------------------------------------------------------
 
 type CreateUserPayload struct {
-	ClerkID       string  `json:"clerkId" validate:"required"`
-	Email         string  `json:"email" validate:"required,email"`
-	WalletAddress *string `json:"walletAddress" validate:"omitempty,eth_addr"` // 'eth_addr' checks for 0x...
-	Role          UserRole  `json:"role" validate:"required,oneof=ADMIN SUPPLIER BUYER"`
+	ClerkID       string   `json:"clerkId" validate:"required"`
+	Email         string   `json:"email" validate:"required,email"`
+	WalletAddress *string  `json:"walletAddress" validate:"omitempty,eth_addr"` // 'eth_addr' checks for 0x...
+	Role          UserRole `json:"role" validate:"required,oneof=ADMIN SUPPLIER BUYER"`
 }
 
 func (p *CreateUserPayload) Validate() error {
@@ -41,10 +41,10 @@ func (p *UpdateUserPayload) Validate() error {
 // ------------------------------------------------------------
 
 type GetUsersQuery struct {
-	Page   *int    `query:"page" validate:"omitempty,min=1"`
-	Limit  *int    `query:"limit" validate:"omitempty,min=1,max=100"`
+	Page   *int      `query:"page" validate:"omitempty,min=1"`
+	Limit  *int      `query:"limit" validate:"omitempty,min=1,max=100"`
 	Role   *UserRole `query:"role" validate:"omitempty,oneof=ADMIN SUPPLIER BUYER"`
-	Search *string `query:"search" validate:"omitempty,min=1"`
+	Search *string   `query:"search" validate:"omitempty,min=1"`
 }
 
 func (q *GetUsersQuery) Validate() error {
@@ -70,11 +70,21 @@ func (q *GetUsersQuery) Validate() error {
 // ------------------------------------------------------------
 
 type SyncUserPayload struct {
-	Email string `json:"email" validate:"required,email"`
-    // We don't need ClerkID here because we extract it securely from the JWT Middleware
+	Email         string  `json:"email" validate:"required,email"`
+	WalletAddress *string `json:"walletAddress" validate:"omitempty,eth_addr"`
+	// We don't need ClerkID here because we extract it securely from the JWT Middleware
 }
 
 func (p *SyncUserPayload) Validate() error {
+	validate := validator.New()
+	return validate.Struct(p)
+}
+
+type UpdateProfileRequest struct {
+	WalletAddress *string `json:"walletAddress" validate:"omitempty,eth_addr"`
+}
+
+func (p *UpdateProfileRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(p)
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/inventedsarawak/ledgera/internal/blockchain/contracts/registry"
 	"github.com/inventedsarawak/ledgera/internal/blockchain/contracts/token"
+	"github.com/inventedsarawak/ledgera/internal/config"
 )
 
 type Client struct {
@@ -70,7 +70,7 @@ func (c *Client) GetTransactOpts(ctx context.Context) (*bind.TransactOpts, error
 
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)
-	auth.GasLimit = uint64(300000)
+	auth.GasLimit = uint64(5000000) // 5M gas to be safe for contract deployment
 	auth.Context = ctx
 
 	return auth, nil
@@ -106,14 +106,35 @@ func (c *Client) DeployProjectToken(ctx context.Context, name string, symbol str
 	}
 
 	// Parse the AssetCreated event to get the token address
-	for _, log := range receipt.Logs {
+	found := false
+	var parseErr error
+
+	// AssetCreated event signature hash
+	// 0xa87566419658c36d7bd865066c1afb99599c60288ef6a0e107d517ecf739a182
+	eventSignature := common.HexToHash("0xa87566419658c36d7bd865066c1afb99599c60288ef6a0e107d517ecf739a182")
+
+	for i, log := range receipt.Logs {
+		// Skip logs that don't match our event signature
+		if len(log.Topics) == 0 || log.Topics[0] != eventSignature {
+			continue
+		}
+
 		event, err := c.registryContract.ParseAssetCreated(*log)
 		if err == nil {
 			return event.AssetAddress.Hex(), nil
 		}
+
+		// If we found a matching topic but failed to parse, capture the error
+		found = true
+		parseErr = err
+		fmt.Printf("Failed to parse log %d: %v\n", i, err)
 	}
 
-	return "", fmt.Errorf("failed to parse asset created event")
+	if found {
+		return "", fmt.Errorf("found AssetCreated event log but failed to parse: %w", parseErr)
+	}
+
+	return "", fmt.Errorf("failed to find AssetCreated event in transaction logs (count: %d)", len(receipt.Logs))
 }
 
 // MintTokens mints tokens to a specific address
@@ -147,4 +168,3 @@ func (c *Client) MintTokens(ctx context.Context, tokenAddress string, to string,
 
 	return nil
 }
-

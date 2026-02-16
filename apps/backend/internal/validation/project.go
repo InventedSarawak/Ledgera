@@ -28,6 +28,15 @@ func (r *GetProjectRequest) Validate() error {
 	return validate.Struct(r)
 }
 
+type MintProjectTokensRequest struct {
+	ID string `param:"id" validate:"required,uuid"`
+}
+
+func (r *MintProjectTokensRequest) Validate() error {
+	validate := validator.New()
+	return validate.Struct(r)
+}
+
 // Empty request for ListMine
 type ListProjectsRequest struct {
 	Page  int `query:"page" validate:"omitempty,min=1"`

@@ -22,7 +22,4 @@ func RegisterMarketplaceRoutes(g *echo.Group, h *handler.MarketplaceHandler, aut
 
 	// Buyer actions
 	marketplaceGroup.POST("/listings/:id/buy", h.BuyListing)
-
-	// Admin only - token minting
-	marketplaceGroup.POST("/tokens/:id/mint", h.MintTokens)
 }

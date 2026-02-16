@@ -13,12 +13,39 @@ export interface Project {
     supplierEmail?: string
     status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'DEPLOYED' | 'REJECTED'
     createdAt: string
+    updatedAt: string
     contractAddress?: string
     tokenSymbol?: string
+}
+
+export interface MarketplaceListing {
+    id: string
+    projectId: string
+    sellerId: string
+    amount: number
+    priceEth: number
+    active: boolean
+    createdAt: string
+    updatedAt: string
+}
+
+export interface ListingWithDetails extends MarketplaceListing {
+    projectTitle: string
+    sellerEmail: string
+    tokenAddress: string | null
+    tokenSymbol: string | null
+}
+
+export interface PaginatedResponse<T> {
+    data: T[]
+    total: number
+    page: number
+    limit: number
 }
 
 export interface ApiErrorResponse {
     message: string
     error?: string
     statusCode?: number
+    code?: string
 }

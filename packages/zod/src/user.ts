@@ -13,7 +13,11 @@ export const ZUser = z.object({
 })
 
 export const ZSyncUserPayload = z.object({
-    email: z.string().email()
+    email: z.string().email(),
+    walletAddress: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/)
+        .optional()
 })
 
 export type TUser = z.infer<typeof ZUser>

@@ -266,6 +266,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
             area = COALESCE(@area, area),
             carbon_amount_total = COALESCE(@carbon_amount_total, carbon_amount_total),
             contract_address = COALESCE(@contract_address, contract_address),
+            token_symbol = COALESCE(@token_symbol, token_symbol),
             status = COALESCE(@status, status),
             updated_at = NOW()
         WHERE id = @id
@@ -288,6 +289,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
 		"area":                payload.Area,
 		"carbon_amount_total": payload.CarbonAmount,
 		"contract_address":    payload.ContractAddress,
+		"token_symbol":        payload.TokenSymbol,
 		"status":              payload.Status,
 	}
 

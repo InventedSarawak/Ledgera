@@ -16,9 +16,9 @@ type Services struct {
 
 func NewServices(s *server.Server, repos *repository.Repositories) (*Services, error) {
 	authService := NewAuthService(s, repos.User)
-	blockchainService := NewBlockchainService(s, repos.Project)
-	projectService := NewProjectService(s, repos.Project, repos.User, blockchainService)
+	blockchainService := NewBlockchainService(s, repos.Project, repos.User)
 	marketplaceService := NewMarketplaceService(s, repos.Marketplace, repos.Project, blockchainService)
+	projectService := NewProjectService(s, repos.Project, repos.User, blockchainService, marketplaceService)
 
 	return &Services{
 		Job:         s.Job,

@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"math/big"
 	"net/http"
 
 	"github.com/inventedsarawak/ledgera/internal/middleware"
@@ -140,28 +139,5 @@ func (s *MarketplaceService) CancelListing(ctx echo.Context, listingID, userID s
 	}
 
 	logger.Info().Str("listing_id", listingID).Msg("listing cancelled")
-	return nil
-}
-
-// MintTokens mints new tokens for a project (admin only)
-func (s *MarketplaceService) MintTokens(ctx echo.Context, projectID, toAddress string, amount float64) error {
-	logger := middleware.GetLogger(ctx)
-	logger.Info().
-		Str("project_id", projectID).
-		Str("to_address", toAddress).
-		Float64("amount", amount).
-		Msg("minting tokens")
-
-	// Convert amount to big.Int (assuming 18 decimals)
-	amountWei := new(big.Float).Mul(big.NewFloat(amount), big.NewFloat(1e18))
-	amountBigInt, _ := amountWei.Int(nil)
-
-	// Call blockchain service
-	err := s.blockchainService.MintProjectTokens(ctx.Request().Context(), projectID, amountBigInt)
-	if err != nil {
-		return fmt.Errorf("failed to mint tokens: %w", err)
-	}
-
-	logger.Info().Msg("tokens minted successfully")
 	return nil
 }

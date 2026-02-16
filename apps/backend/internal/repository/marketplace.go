@@ -103,7 +103,7 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 	dataQuery := `
 		SELECT 
 			ml.id, ml.project_id, ml.seller_id, ml.amount, ml.price_eth, ml.active, ml.created_at, ml.updated_at,
-			p.title, u.email, p.contract_address, p.title
+			p.title, u.email, p.contract_address, p.token_symbol
 		` + baseQuery + `
 		ORDER BY ml.created_at DESC
 		LIMIT $` + fmt.Sprintf("%d", argNum) + ` OFFSET $` + fmt.Sprintf("%d", argNum+1)

@@ -198,3 +198,15 @@ func (h *ProjectHandler) Reject(c echo.Context) error {
 		&validation.ReviewProjectRequest{},
 	)(c)
 }
+
+func (h *ProjectHandler) MintTokens(c echo.Context) error {
+	return HandleNoContent(
+		h.Handler,
+		func(c echo.Context, req *validation.MintProjectTokensRequest) error {
+			userID := middleware.GetUserID(c)
+			return h.projectService.MintTokens(c, req.ID, userID)
+		},
+		http.StatusOK,
+		&validation.MintProjectTokensRequest{},
+	)(c)
+}

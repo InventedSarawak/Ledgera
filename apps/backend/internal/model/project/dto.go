@@ -39,6 +39,7 @@ type UpdateProjectPayload struct {
 	Title           *string        `json:"title" validate:"omitempty,min=3,max=150"`
 	Description     *string        `json:"description" validate:"omitempty,min=10"`
 	ContractAddress *string        `json:"contractAddress" validate:"omitempty,eth_addr"`
+	TokenSymbol     *string        `json:"tokenSymbol" validate:"omitempty"` // Added TokenSymbol
 	LocationLat     *float64       `json:"locationLat" validate:"omitempty,latitude"`
 	LocationLng     *float64       `json:"locationLng" validate:"omitempty,longitude"`
 	Area            *float64       `json:"area" validate:"omitempty,gt=0"`
@@ -121,4 +122,3 @@ func (p *CreateProjectRequestPayload) Validate() error {
 	validate := validator.New()
 	return validate.Struct(p)
 }
-

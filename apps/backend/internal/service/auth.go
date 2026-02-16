@@ -25,14 +25,14 @@ func NewAuthService(s *server.Server, userRepo *repository.UserRepository) *Auth
 	}
 }
 
-func (s *AuthService) SyncUser(ctx echo.Context, clerkID string, email string) (*user.User, error) {
+func (s *AuthService) SyncUser(ctx echo.Context, clerkID string, email string, walletAddress *string) (*user.User, error) {
 	logger := middleware.GetLogger(ctx)
 
 	// Determine role from context metadata/claims
 	role := normalizeRole(middleware.GetUserRole(ctx))
 
 	// Upsert User in DB
-	u, err := s.userRepo.UpsertUser(ctx.Request().Context(), clerkID, email, role)
+	u, err := s.userRepo.UpsertUser(ctx.Request().Context(), clerkID, email, role, walletAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +44,30 @@ func (s *AuthService) SyncUser(ctx echo.Context, clerkID string, email string) (
 		Str("user_id", u.ID.String()).
 		Str("role", string(u.Role)).
 		Msg("user synced")
+
+	return u, nil
+}
+
+func (s *AuthService) UpdateProfile(ctx echo.Context, clerkID string, req *user.UpdateProfileRequest) (*user.User, error) {
+	// 1. Find User by Clerk ID
+	u, err := s.userRepo.FindByClerkID(ctx.Request().Context(), clerkID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, echo.NewHTTPError(404, "User not found")
+	}
+
+	// 2. Update Fields
+	if req.WalletAddress != nil {
+		u.WalletAddress = req.WalletAddress
+	}
+
+	// 3. Save
+	err = s.userRepo.UpdateUser(ctx.Request().Context(), u)
+	if err != nil {
+		return nil, err
+	}
 
 	return u, nil
 }

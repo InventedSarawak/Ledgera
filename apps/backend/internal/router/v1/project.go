@@ -21,4 +21,5 @@ func RegisterProjectRoutes(g *echo.Group, h *handler.ProjectHandler, auth *middl
 	projectGroup.POST("/:id/submit", h.SendForApproval)
 	projectGroup.POST("/:id/approve", h.Approve)
 	projectGroup.POST("/:id/reject", h.Reject)
+	projectGroup.POST("/:id/mint", h.MintTokens)
 }

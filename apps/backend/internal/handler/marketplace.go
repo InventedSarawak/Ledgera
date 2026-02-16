@@ -94,23 +94,6 @@ func (h *MarketplaceHandler) CancelListing(c echo.Context) error {
 	)(c)
 }
 
-// MintTokens mints new tokens (admin only)
-func (h *MarketplaceHandler) MintTokens(c echo.Context) error {
-	return HandleNoContent(
-		h.Handler,
-		func(c echo.Context, req *validation.MintTokenRequest) error {
-			// Check if user is admin
-			role := middleware.GetUserRole(c)
-			if role != "ADMIN" {
-				return echo.NewHTTPError(http.StatusForbidden, "only admins can mint tokens")
-			}
-			return h.marketplaceService.MintTokens(c, req.ProjectID.String(), req.ToAddress, req.Amount)
-		},
-		http.StatusOK,
-		&validation.MintTokenRequest{},
-	)(c)
-}
-
 // DeployProjectToken manually deploys a project token (admin only)
 func (h *MarketplaceHandler) DeployProjectToken(c echo.Context) error {
 	return HandleNoContent(

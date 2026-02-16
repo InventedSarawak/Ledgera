@@ -27,9 +27,21 @@ func (h *AuthHandler) SyncUser(c echo.Context) error {
 		h.Handler,
 		func(c echo.Context, payload *user.SyncUserPayload) (*user.User, error) {
 			userID := middleware.GetUserID(c)
-			return h.authService.SyncUser(c, userID, payload.Email)
+			return h.authService.SyncUser(c, userID, payload.Email, payload.WalletAddress)
 		},
 		http.StatusOK,
 		&user.SyncUserPayload{},
+	)(c)
+}
+
+func (h *AuthHandler) UpdateProfile(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, payload *user.UpdateProfileRequest) (*user.User, error) {
+			userID := middleware.GetUserID(c)
+			return h.authService.UpdateProfile(c, userID, payload)
+		},
+		http.StatusOK,
+		&user.UpdateProfileRequest{},
 	)(c)
 }
