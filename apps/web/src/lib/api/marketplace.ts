@@ -63,7 +63,12 @@ export async function createMarketplaceListing(data: CreateListingData): Promise
 /**
  * Purchase a marketplace listing
  */
-export async function buyMarketplaceListing(listingId: string, txHash: string, buyerWallet: string, amount: number): Promise<void> {
+export async function buyMarketplaceListing(
+    listingId: string,
+    txHash: string,
+    buyerWallet: string,
+    amount: number
+): Promise<void> {
     await axiosInstance.post(`/marketplace/listings/${listingId}/buy`, { txHash, buyerWallet, amount })
 }
 

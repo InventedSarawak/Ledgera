@@ -17,16 +17,19 @@ export default function BuyerPortfolioPage() {
     const purchases: PurchaseWithDetails[] = data?.data ?? []
 
     // Aggregate by project for portfolio view
-    const projectMap = new Map<string, {
-        projectId: string
-        projectTitle: string
-        tokenSymbol: string | null
-        tokenAddress: string | null
-        totalAmount: number
-        totalSpentEth: number
-        purchaseCount: number
-        lastPurchaseDate: string
-    }>()
+    const projectMap = new Map<
+        string,
+        {
+            projectId: string
+            projectTitle: string
+            tokenSymbol: string | null
+            tokenAddress: string | null
+            totalAmount: number
+            totalSpentEth: number
+            purchaseCount: number
+            lastPurchaseDate: string
+        }
+    >()
 
     for (const p of purchases) {
         const existing = projectMap.get(p.projectId)
@@ -205,9 +208,7 @@ export default function BuyerPortfolioPage() {
                                         </div>
 
                                         <div className="text-right">
-                                            <p className="font-bold text-lg">
-                                                {tx.amount.toLocaleString()} Credits
-                                            </p>
+                                            <p className="font-bold text-lg">{tx.amount.toLocaleString()} Credits</p>
                                             <p className="text-sm text-muted-foreground">
                                                 @ {tx.priceEth} ETH = {tx.totalEth.toFixed(6)} ETH
                                             </p>

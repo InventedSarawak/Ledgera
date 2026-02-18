@@ -153,9 +153,7 @@ export function BuyerDashboard() {
                     ) : (
                         <div className="space-y-3">
                             {recentPurchases.map((tx) => (
-                                <div
-                                    key={tx.id}
-                                    className="flex items-center justify-between p-3 border rounded-lg">
+                                <div key={tx.id} className="flex items-center justify-between p-3 border rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <Badge>Purchase</Badge>
                                         <div>

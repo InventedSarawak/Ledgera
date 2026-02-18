@@ -33,9 +33,7 @@ export default function BuyerTransactionsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>All Transactions</CardTitle>
-                        <CardDescription>
-                            {data ? `${data.total} total transactions` : 'Loading...'}
-                        </CardDescription>
+                        <CardDescription>{data ? `${data.total} total transactions` : 'Loading...'}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
@@ -85,8 +83,12 @@ export default function BuyerTransactionsPage() {
 
                                             {/* Amount */}
                                             <div>
-                                                <span className="md:hidden text-xs text-muted-foreground">Amount: </span>
-                                                <span className="font-semibold">{tx.amount.toLocaleString()} Credits</span>
+                                                <span className="md:hidden text-xs text-muted-foreground">
+                                                    Amount:{' '}
+                                                </span>
+                                                <span className="font-semibold">
+                                                    {tx.amount.toLocaleString()} Credits
+                                                </span>
                                             </div>
 
                                             {/* Price per credit */}
