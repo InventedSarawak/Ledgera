@@ -4,6 +4,7 @@ import './globals.css'
 import ReactQueryProvider from '../providers/ReactQueryProvider'
 import ClerkProviderWrapper from '../providers/ClerkProvider'
 import Navbar from '@/components/Navbar'
+import { AxiosAuthInterceptor } from '@/components/AxiosAuthInterceptor'
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -29,6 +30,7 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 <ClerkProviderWrapper>
+                    <AxiosAuthInterceptor />
                     <ReactQueryProvider>
                         <Navbar />
                         {children}

@@ -12,7 +12,7 @@ tasks:
                 echo "Starting Anvil..."
 
                 # Start anvil in background but keep logs in terminal
-                anvil --chain-id 31337 --block-time 2 --port 8545 &
+                anvil --chain-id 31337 --port 8545 &
                 ANVIL_PID=$!
 
                 # Wait until RPC is ready

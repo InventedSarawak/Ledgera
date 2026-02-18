@@ -3,19 +3,23 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { ListingWithDetails } from '@/lib/types'
 import { ShoppingCart, MapPin, Leaf } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useState } from 'react'
 
 interface ListingCardProps {
     listing: ListingWithDetails
-    onBuy?: (listingId: string) => void
+    onBuy?: (listingId: string, amount: number) => void
     isLoading?: boolean
     showBuyButton?: boolean
 }
 
 export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton = true }: ListingCardProps) {
-    const totalPrice = (listing.amount * listing.priceEth).toFixed(4)
+    const [buyAmount, setBuyAmount] = useState<number>(listing.amount)
+    const totalPrice = (buyAmount * listing.priceEth).toFixed(6)
+    const isValidAmount = buyAmount > 0 && buyAmount <= listing.amount
 
     return (
         <Card className="hover:shadow-lg transition-shadow">
@@ -35,7 +39,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Amount</p>
+                        <p className="text-sm text-muted-foreground">Available</p>
                         <p className="text-2xl font-bold flex items-center gap-1">
                             <Leaf className="h-5 w-5 text-green-600" />
                             {listing.amount.toLocaleString()}
@@ -46,14 +50,13 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
                     <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">Price per Credit</p>
                         <p className="text-2xl font-bold">{listing.priceEth} ETH</p>
-                        <p className="text-xs text-muted-foreground">Total: {totalPrice} ETH</p>
                     </div>
                 </div>
 
-                {listing.tokenAddress && (
+                {listing.tokenSymbol && (
                     <div className="pt-2 border-t">
                         <p className="text-xs text-muted-foreground">Token Symbol</p>
-                        <p className="font-mono text-sm font-semibold">{listing.tokenSymbol || 'N/A'}</p>
+                        <p className="font-mono text-sm font-semibold">{listing.tokenSymbol}</p>
                     </div>
                 )}
 
@@ -63,10 +66,38 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
             </CardContent>
 
             {showBuyButton && listing.active && (
-                <CardFooter>
-                    <Button className="w-full" size="lg" onClick={() => onBuy?.(listing.id)} disabled={isLoading}>
+                <CardFooter className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 w-full">
+                        <label className="text-sm text-muted-foreground whitespace-nowrap">Qty:</label>
+                        <Input
+                            type="number"
+                            min={1}
+                            max={listing.amount}
+                            step="any"
+                            value={buyAmount}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value)
+                                if (!isNaN(val)) setBuyAmount(val)
+                            }}
+                            className="w-28"
+                            disabled={isLoading}
+                        />
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setBuyAmount(listing.amount)}
+                            disabled={isLoading}
+                            className="text-xs">
+                            Max
+                        </Button>
+                    </div>
+                    <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={() => onBuy?.(listing.id, buyAmount)}
+                        disabled={isLoading || !isValidAmount}>
                         <ShoppingCart className="mr-2 h-4 w-4" />
-                        {isLoading ? 'Processing...' : `Buy for ${totalPrice} ETH`}
+                        {isLoading ? 'Processing...' : `Buy ${buyAmount} for ${totalPrice} ETH`}
                     </Button>
                 </CardFooter>
             )}

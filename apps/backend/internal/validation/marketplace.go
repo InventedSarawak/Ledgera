@@ -20,7 +20,10 @@ func (r *CreateListingRequest) Validate() error {
 }
 
 type BuyListingRequest struct {
-	ListingID string `json:"listingId" param:"id" validate:"required,uuid"`
+	ListingID   string  `json:"listingId" param:"id" validate:"required,uuid"`
+	TxHash      string  `json:"txHash" validate:"required"`
+	BuyerWallet string  `json:"buyerWallet" validate:"required"`
+	Amount      float64 `json:"amount" validate:"required,gt=0"`
 }
 
 func (r *BuyListingRequest) Validate() error {

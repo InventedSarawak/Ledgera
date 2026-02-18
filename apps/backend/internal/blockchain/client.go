@@ -168,3 +168,50 @@ func (c *Client) MintTokens(ctx context.Context, tokenAddress string, to string,
 
 	return nil
 }
+
+// VerifyETHPayment verifies that a transaction sent the expected ETH amount to the expected recipient
+func (c *Client) VerifyETHPayment(ctx context.Context, txHash string, expectedTo string, expectedAmountWei *big.Int) error {
+	hash := common.HexToHash(txHash)
+
+	// Get the transaction
+	tx, isPending, err := c.Eth.TransactionByHash(ctx, hash)
+	if err != nil {
+		return fmt.Errorf("failed to fetch transaction: %w", err)
+	}
+	if isPending {
+		return fmt.Errorf("transaction is still pending")
+	}
+
+	// Get the receipt to check status
+	receipt, err := c.Eth.TransactionReceipt(ctx, hash)
+	if err != nil {
+		return fmt.Errorf("failed to fetch transaction receipt: %w", err)
+	}
+	if receipt.Status == 0 {
+		return fmt.Errorf("transaction failed on-chain")
+	}
+
+	// Verify recipient
+	if tx.To() == nil {
+		return fmt.Errorf("transaction has no recipient (contract creation)")
+	}
+	actualTo := tx.To().Hex()
+	expectedToAddr := common.HexToAddress(expectedTo).Hex()
+	if actualTo != expectedToAddr {
+		return fmt.Errorf("transaction recipient mismatch: expected %s, got %s", expectedToAddr, actualTo)
+	}
+
+	// Verify amount (allow >= expected to handle gas variations)
+	if tx.Value().Cmp(expectedAmountWei) < 0 {
+		return fmt.Errorf("insufficient ETH sent: expected %s wei, got %s wei", expectedAmountWei.String(), tx.Value().String())
+	}
+
+	return nil
+}
+
+// TransferTokensTobuyer mints tokens to the buyer's address (admin-initiated)
+// This is used in the marketplace buy flow where the admin mints tokens to the buyer
+// after verifying ETH payment to the seller
+func (c *Client) TransferTokensToBuyer(ctx context.Context, tokenAddress string, buyerAddress string, amount *big.Int) error {
+	return c.MintTokens(ctx, tokenAddress, buyerAddress, amount)
+}

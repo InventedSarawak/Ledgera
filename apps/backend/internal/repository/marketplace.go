@@ -103,7 +103,7 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 	dataQuery := `
 		SELECT 
 			ml.id, ml.project_id, ml.seller_id, ml.amount, ml.price_eth, ml.active, ml.created_at, ml.updated_at,
-			p.title, u.email, p.contract_address, p.token_symbol
+			p.title, u.email, p.contract_address, p.token_symbol, u.wallet_address
 		` + baseQuery + `
 		ORDER BY ml.created_at DESC
 		LIMIT $` + fmt.Sprintf("%d", argNum) + ` OFFSET $` + fmt.Sprintf("%d", argNum+1)
@@ -132,6 +132,7 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 			&listing.SellerEmail,
 			&listing.TokenAddress,
 			&listing.TokenSymbol,
+			&listing.SellerWalletAddress,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan listing: %w", err)
@@ -158,7 +159,100 @@ func (r *MarketplaceRepository) CancelListing(ctx context.Context, id string) er
 	return nil
 }
 
+// ReduceListingAmount reduces the available amount on a listing after a partial purchase
+func (r *MarketplaceRepository) ReduceListingAmount(ctx context.Context, id string, reduceBy float64) error {
+	query := `
+		UPDATE marketplace_listings
+		SET amount = amount - $2, updated_at = NOW()
+		WHERE id = $1 AND amount >= $2
+	`
+
+	cmd, err := r.db.Pool.Exec(ctx, query, id, reduceBy)
+	if err != nil {
+		return fmt.Errorf("failed to reduce listing amount: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return fmt.Errorf("insufficient listing amount")
+	}
+
+	return nil
+}
+
 // CompleteListing marks a listing as sold (inactive)
 func (r *MarketplaceRepository) CompleteListing(ctx context.Context, id string) error {
 	return r.CancelListing(ctx, id)
+}
+
+// RecordPurchase inserts a purchase record
+func (r *MarketplaceRepository) RecordPurchase(ctx context.Context, purchase model.Purchase) (*model.Purchase, error) {
+	query := `
+		INSERT INTO purchases (buyer_id, listing_id, project_id, seller_id, amount, price_eth, total_eth, tx_hash)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, created_at
+	`
+
+	err := r.db.Pool.QueryRow(ctx, query,
+		purchase.BuyerID,
+		purchase.ListingID,
+		purchase.ProjectID,
+		purchase.SellerID,
+		purchase.Amount,
+		purchase.PriceETH,
+		purchase.TotalETH,
+		purchase.TxHash,
+	).Scan(&purchase.ID, &purchase.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record purchase: %w", err)
+	}
+
+	return &purchase, nil
+}
+
+// ListPurchasesByBuyer gets all purchases for a buyer with project details
+func (r *MarketplaceRepository) ListPurchasesByBuyer(ctx context.Context, buyerID string, page, limit int) ([]model.PurchaseWithDetails, int, error) {
+	offset := (page - 1) * limit
+
+	// Count query
+	var total int
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM purchases WHERE buyer_id = $1`, buyerID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count purchases: %w", err)
+	}
+
+	// Data query with project details
+	query := `
+		SELECT 
+			pu.id, pu.buyer_id, pu.listing_id, pu.project_id, pu.seller_id,
+			pu.amount, pu.price_eth, pu.total_eth, pu.tx_hash, pu.created_at,
+			p.title, p.token_symbol, p.contract_address
+		FROM purchases pu
+		INNER JOIN projects p ON pu.project_id = p.id
+		WHERE pu.buyer_id = $1
+		ORDER BY pu.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Pool.Query(ctx, query, buyerID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list purchases: %w", err)
+	}
+	defer rows.Close()
+
+	purchases := []model.PurchaseWithDetails{}
+	for rows.Next() {
+		var p model.PurchaseWithDetails
+		err := rows.Scan(
+			&p.ID, &p.BuyerID, &p.ListingID, &p.ProjectID, &p.SellerID,
+			&p.Amount, &p.PriceETH, &p.TotalETH, &p.TxHash, &p.CreatedAt,
+			&p.ProjectTitle, &p.TokenSymbol, &p.TokenAddress,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan purchase: %w", err)
+		}
+		purchases = append(purchases, p)
+	}
+
+	return purchases, total, nil
 }

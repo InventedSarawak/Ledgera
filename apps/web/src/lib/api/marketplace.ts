@@ -63,8 +63,8 @@ export async function createMarketplaceListing(data: CreateListingData): Promise
 /**
  * Purchase a marketplace listing
  */
-export async function buyMarketplaceListing(listingId: string): Promise<void> {
-    await axiosInstance.post(`/marketplace/listings/${listingId}/buy`)
+export async function buyMarketplaceListing(listingId: string, txHash: string, buyerWallet: string, amount: number): Promise<void> {
+    await axiosInstance.post(`/marketplace/listings/${listingId}/buy`, { txHash, buyerWallet, amount })
 }
 
 /**
@@ -72,4 +72,16 @@ export async function buyMarketplaceListing(listingId: string): Promise<void> {
  */
 export async function cancelMarketplaceListing(listingId: string): Promise<void> {
     await axiosInstance.delete(`/marketplace/listings/${listingId}`)
+}
+
+/**
+ * Get buyer's purchase history
+ */
+export async function getBuyerPurchases(params?: { page?: number; limit?: number }): Promise<{
+    data: import('@/lib/types').PurchaseWithDetails[]
+    total: number
+}> {
+    const response = await axiosInstance.get('/marketplace/purchases', { params })
+    const total = parseInt(response.headers['x-total-count'] || '0')
+    return { data: response.data, total }
 }

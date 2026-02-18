@@ -74,7 +74,7 @@ func (h *MarketplaceHandler) BuyListing(c echo.Context) error {
 		h.Handler,
 		func(c echo.Context, req *validation.BuyListingRequest) error {
 			userID := middleware.GetUserID(c)
-			return h.marketplaceService.BuyListing(c, req.ListingID, userID)
+			return h.marketplaceService.BuyListing(c, req.ListingID, userID, req.TxHash, req.BuyerWallet, req.Amount)
 		},
 		http.StatusOK,
 		&validation.BuyListingRequest{},
@@ -105,5 +105,25 @@ func (h *MarketplaceHandler) DeployProjectToken(c echo.Context) error {
 		},
 		http.StatusOK,
 		&validation.DeployProjectTokenRequest{},
+	)(c)
+}
+
+// GetBuyerPurchases returns authenticated buyer's purchase history
+func (h *MarketplaceHandler) GetBuyerPurchases(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ListMarketplaceRequest) ([]model.PurchaseWithDetails, error) {
+			userID := middleware.GetUserID(c)
+			purchases, total, err := h.marketplaceService.ListBuyerPurchases(c, userID, req.Page, req.Limit)
+			if err != nil {
+				return nil, err
+			}
+			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
+			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
+			return purchases, nil
+		},
+		http.StatusOK,
+		&validation.ListMarketplaceRequest{},
 	)(c)
 }

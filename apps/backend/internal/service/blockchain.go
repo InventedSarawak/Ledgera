@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/inventedsarawak/ledgera/internal/blockchain"
 	"github.com/inventedsarawak/ledgera/internal/middleware"
@@ -59,7 +60,7 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 
 	// 3. Generate token name and symbol
 	tokenName := fmt.Sprintf("%s Carbon Credit", proj.Title)
-	tokenSymbol := s.generateTokenSymbol(proj.Title)
+	tokenSymbol := GenerateTokenSymbol(proj.Title)
 
 	logger.Info().
 		Str("token_name", tokenName).
@@ -147,7 +148,7 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 	return nil
 }
 
-// generateTokenSymbol creates a token symbol from the project title
+// GenerateTokenSymbol creates a token symbol from the project title
 // Example: "Amazon Rainforest Project" -> "AMAZ"
 func (s *BlockchainService) generateTokenSymbol(title string) string {
 	// Simple implementation: take first 4 letters of first word and uppercase
@@ -170,7 +171,7 @@ func (s *BlockchainService) generateTokenSymbol(title string) string {
 	}
 
 	// Ensure uppercase
-	return fmt.Sprintf("%s", symbol)
+	return strings.ToUpper(symbol)
 }
 
 // Helper function to create pointer to ProjectStatus

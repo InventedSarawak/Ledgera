@@ -68,6 +68,9 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 	// Define Base Price (Hardcoded for MVP)
 	const INITIAL_MARKET_PRICE = 15.00
 
+	// Auto-assign token symbol from project title so it's always available
+	tokenSymbol := s.blockchainService.generateTokenSymbol(payload.Title)
+
 	p := project.Project{
 		SupplierID:  supplierID,
 		Title:       payload.Title,
@@ -82,6 +85,8 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 
 		CarbonAmount:  payload.CarbonAmount,
 		PricePerTonne: INITIAL_MARKET_PRICE,
+
+		TokenSymbol: &tokenSymbol,
 
 		Status: project.ProjectStatusDraft,
 	}

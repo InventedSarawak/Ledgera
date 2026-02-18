@@ -34,6 +34,7 @@ export interface ListingWithDetails extends MarketplaceListing {
     sellerEmail: string
     tokenAddress: string | null
     tokenSymbol: string | null
+    sellerWalletAddress: string | null
 }
 
 export interface PaginatedResponse<T> {
@@ -48,4 +49,23 @@ export interface ApiErrorResponse {
     error?: string
     statusCode?: number
     code?: string
+}
+
+export interface Purchase {
+    id: string
+    buyerId: string
+    listingId: string
+    projectId: string
+    sellerId: string
+    amount: number
+    priceEth: number
+    totalEth: number
+    txHash: string
+    createdAt: string
+}
+
+export interface PurchaseWithDetails extends Purchase {
+    projectTitle: string
+    tokenSymbol: string | null
+    tokenAddress: string | null
 }

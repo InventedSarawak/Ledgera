@@ -19,6 +19,7 @@ type ListingWithDetails struct {
 	Listing
 	ProjectTitle string `json:"projectTitle" db:"project_title"`
 	SellerEmail  string `json:"sellerEmail" db:"seller_email"`
-	TokenAddress string `json:"tokenAddress" db:"token_address"`
-	TokenSymbol  string `json:"tokenSymbol" db:"token_symbol"`
+	TokenAddress        *string `json:"tokenAddress" db:"token_address"`
+	TokenSymbol         *string `json:"tokenSymbol" db:"token_symbol"`
+	SellerWalletAddress *string `json:"sellerWalletAddress" db:"seller_wallet_address"`
 }

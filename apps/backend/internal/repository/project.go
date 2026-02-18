@@ -24,12 +24,12 @@ func (r *ProjectRepository) Create(ctx context.Context, p project.Project) (*pro
             title, description, image_url, audit_report_url,
             location_lat, location_lng, area,
             carbon_amount_total, price_per_tonne,
-            supplier_id, status, created_at, updated_at
+            supplier_id, token_symbol, status, created_at, updated_at
         ) VALUES (
             @title, @description, @image_url, @audit_report_url,
             @location_lat, @location_lng, @area,
             @carbon_amount_total, @price_per_tonne,
-            @supplier_id, @status, NOW(), NOW()
+            @supplier_id, @token_symbol, @status, NOW(), NOW()
         ) RETURNING id, created_at, updated_at
     `
 
@@ -44,6 +44,7 @@ func (r *ProjectRepository) Create(ctx context.Context, p project.Project) (*pro
 		"carbon_amount_total": p.CarbonAmount,
 		"price_per_tonne":     p.PricePerTonne,
 		"supplier_id":         p.SupplierID,
+		"token_symbol":        p.TokenSymbol,
 		"status":              p.Status,
 	}
 
