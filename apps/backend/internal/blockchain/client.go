@@ -201,9 +201,15 @@ func (c *Client) VerifyETHPayment(ctx context.Context, txHash string, expectedTo
 		return fmt.Errorf("transaction recipient mismatch: expected %s, got %s", expectedToAddr, actualTo)
 	}
 
-	// Verify amount (allow >= expected to handle gas variations)
-	if tx.Value().Cmp(expectedAmountWei) < 0 {
-		return fmt.Errorf("insufficient ETH sent: expected %s wei, got %s wei", expectedAmountWei.String(), tx.Value().String())
+	// Verify amount with tolerance for floating-point precision differences
+	// between frontend (JavaScript) and backend (Go) wei calculations.
+	// e.g., 24 * 0.1 = 2.4000000000000004 in float64, causing ~157 wei delta.
+	// Allow 0.1% tolerance to handle this while still catching genuine underpayments.
+	tolerance := new(big.Int).Div(expectedAmountWei, big.NewInt(1000)) // 0.1%
+	minAcceptable := new(big.Int).Sub(expectedAmountWei, tolerance)
+	if tx.Value().Cmp(minAcceptable) < 0 {
+		return fmt.Errorf("insufficient ETH sent: expected %s wei (±%s), got %s wei",
+			expectedAmountWei.String(), tolerance.String(), tx.Value().String())
 	}
 
 	return nil
@@ -214,4 +220,20 @@ func (c *Client) VerifyETHPayment(ctx context.Context, txHash string, expectedTo
 // after verifying ETH payment to the seller
 func (c *Client) TransferTokensToBuyer(ctx context.Context, tokenAddress string, buyerAddress string, amount *big.Int) error {
 	return c.MintTokens(ctx, tokenAddress, buyerAddress, amount)
+}
+
+// GetTokenBalance returns the on-chain ERC-20 token balance for a wallet address
+func (c *Client) GetTokenBalance(ctx context.Context, tokenAddress string, walletAddress string) (*big.Int, error) {
+	tokenContract, err := token.NewToken(common.HexToAddress(tokenAddress), c.Eth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load token contract: %w", err)
+	}
+
+	callOpts := c.GetCallOpts(ctx)
+	balance, err := tokenContract.BalanceOf(callOpts, common.HexToAddress(walletAddress))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get token balance: %w", err)
+	}
+
+	return balance, nil
 }

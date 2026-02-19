@@ -60,7 +60,7 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 
 	// 3. Generate token name and symbol
 	tokenName := fmt.Sprintf("%s Carbon Credit", proj.Title)
-	tokenSymbol := GenerateTokenSymbol(proj.Title)
+	tokenSymbol := s.generateTokenSymbol(proj.Title)
 
 	logger.Info().
 		Str("token_name", tokenName).

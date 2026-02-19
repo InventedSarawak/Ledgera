@@ -31,6 +31,8 @@ export interface MarketplaceListing {
 
 export interface ListingWithDetails extends MarketplaceListing {
     projectTitle: string
+    projectDescription: string
+    projectImageUrl: string
     sellerEmail: string
     tokenAddress: string | null
     tokenSymbol: string | null

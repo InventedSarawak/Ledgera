@@ -18,20 +18,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { getMyProjects } from '@/lib/api/projects'
 import { createMarketplaceListing, listMarketplaceListings, cancelMarketplaceListing } from '@/lib/api/marketplace'
-import { Project } from '@/lib/types'
+import { Project, ListingWithDetails } from '@/lib/types'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, DollarSign } from 'lucide-react'
+import { Plus, Trash2, DollarSign, Eye, Coins, MapPin, Leaf, FileCheck, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 
 export default function SupplierMarketplacePage() {
     const { toast } = useToast()
     const queryClient = useQueryClient()
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
     const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+    const [selectedListing, setSelectedListing] = useState<ListingWithDetails | null>(null)
     const [amount, setAmount] = useState('')
     const [priceEth, setPriceEth] = useState('')
+    const [copied, setCopied] = useState(false)
 
     // Fetch deployed projects (only these can be listed)
     const { data: projects, isLoading: loadingProjects } = useQuery({
@@ -87,6 +91,11 @@ export default function SupplierMarketplacePage() {
 
     const deployedProjects = projects?.data.filter((p) => p.status === 'DEPLOYED') || []
 
+    // Find project details for a listing
+    const getProjectForListing = (listing: ListingWithDetails): Project | undefined => {
+        return projects?.data.find((p) => p.id === listing.projectId)
+    }
+
     const handleCreateListing = () => {
         if (!selectedProject || !amount || !priceEth) {
             toast({
@@ -108,6 +117,18 @@ export default function SupplierMarketplacePage() {
         if (confirm('Are you sure you want to cancel this listing?')) {
             cancelListingMutation.mutate(listingId)
         }
+    }
+
+    const handleViewDetails = (listing: ListingWithDetails) => {
+        setSelectedListing(listing)
+        setDetailsDialogOpen(true)
+        setCopied(false)
+    }
+
+    const handleCopyAddress = (address: string) => {
+        navigator.clipboard.writeText(address)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
     return (
@@ -182,17 +203,34 @@ export default function SupplierMarketplacePage() {
                                                 </div>
                                             </div>
 
-                                            {listing.active && (
-                                                <Button
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    className="w-full"
-                                                    onClick={() => handleCancelListing(listing.id)}
-                                                    disabled={cancelListingMutation.isPending}>
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Cancel Listing
-                                                </Button>
+                                            {listing.tokenSymbol && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Coins className="h-3 w-3" />
+                                                    <span>Token: {listing.tokenSymbol}</span>
+                                                </div>
                                             )}
+
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1"
+                                                    onClick={() => handleViewDetails(listing)}>
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    View Details
+                                                </Button>
+                                                {listing.active && (
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        className="flex-1"
+                                                        onClick={() => handleCancelListing(listing.id)}
+                                                        disabled={cancelListingMutation.isPending}>
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Cancel
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 ))}
@@ -313,6 +351,161 @@ export default function SupplierMarketplacePage() {
                             </Button>
                             <Button onClick={handleCreateListing} disabled={createListingMutation.isPending}>
                                 {createListingMutation.isPending ? 'Creating...' : 'Create Listing'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* View Details Dialog */}
+                <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>Listing Details</DialogTitle>
+                            <DialogDescription>
+                                {selectedListing?.projectTitle}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {selectedListing && (() => {
+                            const project = getProjectForListing(selectedListing)
+                            return (
+                                <div className="space-y-5">
+                                    {/* Listing Stats */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-muted rounded-lg">
+                                            <p className="text-xs text-muted-foreground">Credits Listed</p>
+                                            <p className="text-xl font-bold">{selectedListing.amount.toLocaleString()}</p>
+                                        </div>
+                                        <div className="p-3 bg-muted rounded-lg">
+                                            <p className="text-xs text-muted-foreground">Price / Credit</p>
+                                            <p className="text-xl font-bold">{selectedListing.priceEth} ETH</p>
+                                        </div>
+                                        <div className="p-3 bg-muted rounded-lg">
+                                            <p className="text-xs text-muted-foreground">Total Value</p>
+                                            <p className="text-xl font-bold">
+                                                {(selectedListing.amount * selectedListing.priceEth).toFixed(4)} ETH
+                                            </p>
+                                        </div>
+                                        <div className="p-3 bg-muted rounded-lg">
+                                            <p className="text-xs text-muted-foreground">Status</p>
+                                            <Badge variant={selectedListing.active ? 'default' : 'secondary'} className="mt-1">
+                                                {selectedListing.active ? 'Active' : 'Sold'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <Separator />
+
+                                    {/* Token Information */}
+                                    <div className="space-y-3">
+                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                            <Coins className="h-4 w-4" />
+                                            Token Information
+                                        </h4>
+                                        {selectedListing.tokenSymbol ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-muted-foreground">Symbol</span>
+                                                    <Badge variant="outline">{selectedListing.tokenSymbol}</Badge>
+                                                </div>
+                                                {selectedListing.tokenAddress && (
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-sm text-muted-foreground">Contract</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs font-mono truncate max-w-[200px]">
+                                                                {selectedListing.tokenAddress}
+                                                            </span>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 shrink-0"
+                                                                onClick={() => handleCopyAddress(selectedListing.tokenAddress!)}>
+                                                                {copied ? (
+                                                                    <Check className="h-3 w-3 text-green-500" />
+                                                                ) : (
+                                                                    <Copy className="h-3 w-3" />
+                                                                )}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">Token not yet deployed</p>
+                                        )}
+                                    </div>
+
+                                    <Separator />
+
+                                    {/* Project Metadata */}
+                                    <div className="space-y-3">
+                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                            <Leaf className="h-4 w-4" />
+                                            Project Details
+                                        </h4>
+
+                                        {project ? (
+                                            <div className="space-y-2 text-sm">
+                                                <p className="text-muted-foreground line-clamp-3">{project.description}</p>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Leaf className="h-3 w-3 text-green-600" />
+                                                        <span>
+                                                            <strong>{project.carbonAmount.toLocaleString()}</strong> tCO2e
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="h-3 w-3 text-red-600" />
+                                                        <span>
+                                                            <strong>{project.area.toFixed(1)}</strong> ha
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <DollarSign className="h-3 w-3 text-blue-600" />
+                                                        <span>${project.pricePerTonne}/tonne</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="h-3 w-3 text-purple-600" />
+                                                        <span className="text-xs">
+                                                            {project.locationLat.toFixed(4)}, {project.locationLng.toFixed(4)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {project.auditReportUrl && (
+                                                    <div className="flex items-center gap-2 pt-1">
+                                                        <FileCheck className="h-3 w-3 text-green-600" />
+                                                        <a
+                                                            href={project.auditReportUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:underline text-xs">
+                                                            View Audit Report
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                Project details not available in current view
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Listing Meta */}
+                                    <Separator />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>Listed: {new Date(selectedListing.createdAt).toLocaleDateString()}</span>
+                                        <span>ID: {selectedListing.id.slice(0, 8)}...</span>
+                                    </div>
+                                </div>
+                            )
+                        })()}
+
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+                                Close
                             </Button>
                         </DialogFooter>
                     </DialogContent>

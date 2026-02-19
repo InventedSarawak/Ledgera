@@ -51,10 +51,68 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, projectID, sellerID
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "project not deployed yet")
 	}
 
-	// TODO: Verify seller owns the tokens (check balance on-chain)
-	// For MVP, we'll trust the seller
+	// 2. Check how much the seller already has listed for this project
+	alreadyListed, err := s.marketplaceRepo.GetActiveListedAmount(ctx.Request().Context(), sellerID, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing listings: %w", err)
+	}
 
-	// 2. Create listing in database
+	// 3. Verify seller has enough tokens
+	if s.blockchainService != nil && s.blockchainService.client != nil {
+		// On-chain validation: check actual token balance
+		seller, err := s.userRepo.FindByClerkID(ctx.Request().Context(), sellerID)
+		if err != nil || seller == nil {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "seller not found")
+		}
+		if seller.WalletAddress == nil || *seller.WalletAddress == "" {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "please connect your wallet before creating a listing")
+		}
+
+		balance, err := s.blockchainService.client.GetTokenBalance(
+			ctx.Request().Context(),
+			*project.ContractAddress,
+			*seller.WalletAddress,
+		)
+		if err != nil {
+			logger.Warn().Err(err).Msg("failed to check on-chain balance, falling back to DB check")
+		} else {
+			// Convert from 18-decimal token units to human-readable float
+			decimals := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+			balanceFloat, _ := new(big.Float).Quo(
+				new(big.Float).SetInt(balance),
+				new(big.Float).SetInt(decimals),
+			).Float64()
+
+			if amount+alreadyListed > balanceFloat {
+				return nil, echo.NewHTTPError(http.StatusBadRequest,
+					fmt.Sprintf("insufficient balance: you have %.2f credits (%.2f already listed), but tried to list %.2f",
+						balanceFloat, alreadyListed, amount))
+			}
+		}
+	} else {
+		// Fallback DB validation when blockchain client is not available
+		if project.SupplierID == sellerID {
+			// Supplier: check against project's total carbon amount
+			if amount+alreadyListed > project.CarbonAmount {
+				return nil, echo.NewHTTPError(http.StatusBadRequest,
+					fmt.Sprintf("insufficient credits: project has %.2f total credits (%.2f already listed), but tried to list %.2f",
+						project.CarbonAmount, alreadyListed, amount))
+			}
+		} else {
+			// Buyer reselling: check against total purchased amount
+			totalPurchased, err := s.marketplaceRepo.GetTotalPurchasedAmount(ctx.Request().Context(), sellerID, projectID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check purchase history: %w", err)
+			}
+			if amount+alreadyListed > totalPurchased {
+				return nil, echo.NewHTTPError(http.StatusBadRequest,
+					fmt.Sprintf("insufficient credits: you own %.2f credits (%.2f already listed), but tried to list %.2f",
+						totalPurchased, alreadyListed, amount))
+			}
+		}
+	}
+
+	// 4. Create listing in database
 	listing, err := s.marketplaceRepo.CreateListing(ctx.Request().Context(), projectID, sellerID, amount, priceETH)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listing: %w", err)

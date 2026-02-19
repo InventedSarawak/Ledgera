@@ -6,11 +6,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useWallet } from '@/hooks/use-wallet'
 import { listMarketplaceListings, buyMarketplaceListing } from '@/lib/api/marketplace'
-import { CHAIN_ID_HEX, RPC_URL } from '@/lib/constants'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Filter, ChevronLeft, ChevronRight, Wallet } from 'lucide-react'
+import { Search, Filter, ChevronLeft, ChevronRight, Wallet, AlertTriangle, ExternalLink } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { ListingWithDetails } from '@/lib/types'
 import { BrowserProvider, parseEther, formatEther } from 'ethers'
@@ -18,11 +26,13 @@ import { BrowserProvider, parseEther, formatEther } from 'ethers'
 export default function BuyerMarketplacePage() {
     const { toast } = useToast()
     const queryClient = useQueryClient()
+    const { walletAddress, hasMetaMask, isConnecting, connectWallet } = useWallet()
     const [page, setPage] = useState(1)
     const [limit, setLimit] = useState(12)
     const [searchQuery, setSearchQuery] = useState('')
     const [buyingId, setBuyingId] = useState<string | null>(null)
-    const [walletAddress, setWalletAddress] = useState<string | null>(null)
+    const [walletDialogOpen, setWalletDialogOpen] = useState(false)
+    const [pendingBuy, setPendingBuy] = useState<{ listingId: string; amount: number } | null>(null)
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['marketplace-listings', page, limit],
@@ -30,8 +40,8 @@ export default function BuyerMarketplacePage() {
     })
 
     const confirmPurchaseMutation = useMutation({
-        mutationFn: ({ listingId, txHash, amount }: { listingId: string; txHash: string; amount: number }) =>
-            buyMarketplaceListing(listingId, txHash, walletAddress!, amount),
+        mutationFn: ({ listingId, txHash, amount, wallet }: { listingId: string; txHash: string; amount: number; wallet: string }) =>
+            buyMarketplaceListing(listingId, txHash, wallet, amount),
         onSuccess: () => {
             toast({
                 title: 'Purchase Successful!',
@@ -50,58 +60,8 @@ export default function BuyerMarketplacePage() {
         }
     })
 
-    const connectWallet = useCallback(async () => {
-        if (!window.ethereum) {
-            toast({
-                title: 'MetaMask Not Found',
-                description: 'Please install MetaMask to purchase carbon credits',
-                variant: 'destructive'
-            })
-            return null
-        }
-
-        try {
-            // Switch to correct network
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [
-                        {
-                            chainId: CHAIN_ID_HEX,
-                            chainName: 'Anvil Local',
-                            nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
-                            rpcUrls: [RPC_URL],
-                            blockExplorerUrls: null
-                        }
-                    ]
-                })
-            } catch {
-                // Network may already exist
-            }
-
-            const accounts = (await window.ethereum.request({
-                method: 'eth_requestAccounts'
-            })) as string[]
-
-            if (!accounts || accounts.length === 0) {
-                throw new Error('No accounts found')
-            }
-
-            setWalletAddress(accounts[0])
-            return accounts[0]
-        } catch (error) {
-            toast({
-                title: 'Wallet Connection Failed',
-                description: error instanceof Error ? error.message : 'Failed to connect MetaMask',
-                variant: 'destructive'
-            })
-            return null
-        }
-    }, [toast])
-
     const handleBuy = useCallback(
         async (listingId: string, buyAmount: number) => {
-            // Find the listing
             const listing = data?.data.find((l: ListingWithDetails) => l.id === listingId)
             if (!listing) return
 
@@ -123,20 +83,16 @@ export default function BuyerMarketplacePage() {
                 return
             }
 
+            // Check wallet connection
+            if (!walletAddress) {
+                setPendingBuy({ listingId, amount: buyAmount })
+                setWalletDialogOpen(true)
+                return
+            }
+
             setBuyingId(listingId)
 
             try {
-                // 1. Ensure wallet is connected
-                let address = walletAddress
-                if (!address) {
-                    address = await connectWallet()
-                    if (!address) {
-                        setBuyingId(null)
-                        return
-                    }
-                }
-
-                // 2. Calculate total price in ETH based on chosen amount
                 const totalPriceEth = buyAmount * listing.priceEth
                 const totalPriceWei = parseEther(totalPriceEth.toFixed(18))
 
@@ -145,7 +101,6 @@ export default function BuyerMarketplacePage() {
                     description: `Sending ${formatEther(totalPriceWei)} ETH to seller...`
                 })
 
-                // 3. Send ETH to seller via MetaMask
                 const provider = new BrowserProvider(window.ethereum!)
                 const signer = await provider.getSigner()
 
@@ -154,47 +109,48 @@ export default function BuyerMarketplacePage() {
                     value: totalPriceWei
                 })
 
-                toast({
-                    title: 'Transaction Sent',
-                    description: 'Waiting for confirmation...'
-                })
+                toast({ title: 'Transaction Sent', description: 'Waiting for confirmation...' })
 
-                // 4. Wait for transaction confirmation
                 const receipt = await tx.wait()
                 if (!receipt || receipt.status !== 1) {
                     throw new Error('Transaction failed on-chain')
                 }
 
-                toast({
-                    title: 'Payment Confirmed',
-                    description: 'Verifying purchase on the server...'
-                })
+                toast({ title: 'Payment Confirmed', description: 'Verifying purchase on the server...' })
 
-                // 5. Send txHash to backend for verification and token transfer
-                confirmPurchaseMutation.mutate({ listingId, txHash: receipt.hash, amount: buyAmount })
+                confirmPurchaseMutation.mutate({
+                    listingId,
+                    txHash: receipt.hash,
+                    amount: buyAmount,
+                    wallet: walletAddress
+                })
             } catch (error) {
                 console.error('Buy failed:', error)
-
-                // Handle user rejection specifically
                 const err = error as { code?: string | number }
                 if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
-                    toast({
-                        title: 'Transaction Cancelled',
-                        description: 'You rejected the transaction in MetaMask',
-                        variant: 'destructive'
-                    })
+                    toast({ title: 'Transaction Cancelled', description: 'You rejected the transaction in MetaMask', variant: 'destructive' })
+                } else if ((err.code as number) === -32002) {
+                    toast({ title: 'Check MetaMask', description: 'A transaction request is already pending in MetaMask', variant: 'destructive' })
                 } else {
-                    toast({
-                        title: 'Purchase Failed',
-                        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-                        variant: 'destructive'
-                    })
+                    toast({ title: 'Purchase Failed', description: error instanceof Error ? error.message : 'An unexpected error occurred', variant: 'destructive' })
                 }
                 setBuyingId(null)
             }
         },
-        [data, walletAddress, connectWallet, confirmPurchaseMutation, toast]
+        [data, walletAddress, confirmPurchaseMutation, toast]
     )
+
+    const handleConnectFromDialog = useCallback(async () => {
+        const address = await connectWallet()
+        if (address) {
+            setWalletDialogOpen(false)
+            if (pendingBuy) {
+                const { listingId, amount } = pendingBuy
+                setPendingBuy(null)
+                setTimeout(() => handleBuy(listingId, amount), 200)
+            }
+        }
+    }, [connectWallet, pendingBuy, handleBuy])
 
     const filteredListings =
         data?.data.filter((listing) => listing.projectTitle.toLowerCase().includes(searchQuery.toLowerCase())) || []
@@ -213,18 +169,22 @@ export default function BuyerMarketplacePage() {
                         </p>
                     </div>
 
-                    {/* Wallet Connection */}
                     {walletAddress ? (
                         <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm">
                             <Wallet className="h-4 w-4 text-green-600" />
-                            <span>
-                                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                            </span>
+                            <span>{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
                         </div>
                     ) : (
-                        <Button variant="outline" onClick={connectWallet} className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                if (hasMetaMask) connectWallet()
+                                else setWalletDialogOpen(true)
+                            }}
+                            disabled={isConnecting}
+                            className="gap-2">
                             <Wallet className="h-4 w-4" />
-                            Connect Wallet
+                            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
                         </Button>
                     )}
                 </div>
@@ -240,7 +200,6 @@ export default function BuyerMarketplacePage() {
                             className="pl-10"
                         />
                     </div>
-
                     <Select value={limit.toString()} onValueChange={(val: string) => setLimit(parseInt(val))}>
                         <SelectTrigger className="w-45">
                             <Filter className="mr-2 h-4 w-4" />
@@ -283,28 +242,13 @@ export default function BuyerMarketplacePage() {
                             ))}
                         </div>
 
-                        {/* Pagination */}
                         {totalPages > 1 && (
                             <div className="flex items-center justify-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    disabled={page === 1}>
+                                <Button variant="outline" size="icon" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
-
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-muted-foreground">
-                                        Page {page} of {totalPages}
-                                    </span>
-                                </div>
-
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}>
+                                <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+                                <Button variant="outline" size="icon" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -312,6 +256,53 @@ export default function BuyerMarketplacePage() {
                     </>
                 )}
             </div>
+
+            {/* Wallet Connection Dialog */}
+            <Dialog open={walletDialogOpen} onOpenChange={(open) => { setWalletDialogOpen(open); if (!open) setPendingBuy(null) }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-amber-500" />
+                            Wallet Not Connected
+                        </DialogTitle>
+                        <DialogDescription>
+                            You need to connect your MetaMask wallet before you can purchase carbon credits.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        {!hasMetaMask ? (
+                            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg space-y-3">
+                                <p className="font-semibold text-sm">MetaMask Not Detected</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Please install the MetaMask browser extension to interact with the blockchain.
+                                </p>
+                                <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open('https://metamask.io/download/', '_blank')}>
+                                    <ExternalLink className="h-3 w-3" />
+                                    Install MetaMask
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-muted rounded-lg space-y-2">
+                                <p className="font-semibold text-sm">Connect Your Wallet</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Click the button below to connect your MetaMask wallet. You&apos;ll be prompted to approve the connection.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setWalletDialogOpen(false); setPendingBuy(null) }}>Cancel</Button>
+                        {hasMetaMask && (
+                            <Button onClick={handleConnectFromDialog} disabled={isConnecting} className="gap-2">
+                                <Wallet className="h-4 w-4" />
+                                {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     )
 }

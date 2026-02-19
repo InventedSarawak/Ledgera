@@ -103,7 +103,7 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 	dataQuery := `
 		SELECT 
 			ml.id, ml.project_id, ml.seller_id, ml.amount, ml.price_eth, ml.active, ml.created_at, ml.updated_at,
-			p.title, u.email, p.contract_address, p.token_symbol, u.wallet_address
+			p.title, p.description, p.image_url, u.email, p.contract_address, p.token_symbol, u.wallet_address
 		` + baseQuery + `
 		ORDER BY ml.created_at DESC
 		LIMIT $` + fmt.Sprintf("%d", argNum) + ` OFFSET $` + fmt.Sprintf("%d", argNum+1)
@@ -129,6 +129,8 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 			&listing.CreatedAt,
 			&listing.UpdatedAt,
 			&listing.ProjectTitle,
+			&listing.ProjectDescription,
+			&listing.ProjectImageURL,
 			&listing.SellerEmail,
 			&listing.TokenAddress,
 			&listing.TokenSymbol,
@@ -181,6 +183,40 @@ func (r *MarketplaceRepository) ReduceListingAmount(ctx context.Context, id stri
 // CompleteListing marks a listing as sold (inactive)
 func (r *MarketplaceRepository) CompleteListing(ctx context.Context, id string) error {
 	return r.CancelListing(ctx, id)
+}
+
+// GetActiveListedAmount returns the total amount currently listed by a seller for a specific project
+func (r *MarketplaceRepository) GetActiveListedAmount(ctx context.Context, sellerID, projectID string) (float64, error) {
+	query := `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM marketplace_listings
+		WHERE seller_id = $1 AND project_id = $2 AND active = true
+	`
+
+	var total float64
+	err := r.db.Pool.QueryRow(ctx, query, sellerID, projectID).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get active listed amount: %w", err)
+	}
+
+	return total, nil
+}
+
+// GetTotalPurchasedAmount returns the total amount a buyer has purchased for a specific project
+func (r *MarketplaceRepository) GetTotalPurchasedAmount(ctx context.Context, buyerID, projectID string) (float64, error) {
+	query := `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM purchases
+		WHERE buyer_id = $1 AND project_id = $2
+	`
+
+	var total float64
+	err := r.db.Pool.QueryRow(ctx, query, buyerID, projectID).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total purchased amount: %w", err)
+	}
+
+	return total, nil
 }
 
 // RecordPurchase inserts a purchase record

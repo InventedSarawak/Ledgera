@@ -1,13 +1,14 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ListingWithDetails } from '@/lib/types'
-import { ShoppingCart, MapPin, Leaf } from 'lucide-react'
+import { ShoppingCart, Leaf } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
+import Image from 'next/image'
 
 interface ListingCardProps {
     listing: ListingWithDetails
@@ -21,41 +22,64 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
     const totalPrice = (buyAmount * listing.priceEth).toFixed(6)
     const isValidAmount = buyAmount > 0 && buyAmount <= listing.amount
 
+    // Truncate description
+    const shortDescription =
+        listing.projectDescription && listing.projectDescription.length > 120
+            ? listing.projectDescription.slice(0, 120) + '...'
+            : listing.projectDescription || ''
+
     return (
-        <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-                <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl">{listing.projectTitle}</CardTitle>
-                        <CardDescription className="flex items-center gap-1 text-sm">
-                            <MapPin className="h-3 w-3" />
+        <Card className="hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
+            {/* Project Image */}
+            {listing.projectImageUrl && (
+                <div className="relative w-full h-44 bg-muted">
+                    <Image
+                        src={listing.projectImageUrl}
+                        alt={listing.projectTitle}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                </div>
+            )}
+
+            <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 min-w-0">
+                        <CardTitle className="text-lg leading-tight">{listing.projectTitle}</CardTitle>
+                        <p className="text-xs text-muted-foreground">
                             Seller: {listing.sellerEmail}
-                        </CardDescription>
+                        </p>
                     </div>
                     {listing.active ? <Badge variant="default">Active</Badge> : <Badge variant="secondary">Sold</Badge>}
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 flex-1">
+                {/* Description */}
+                {shortDescription && (
+                    <p className="text-sm text-muted-foreground leading-relaxed">{shortDescription}</p>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Available</p>
-                        <p className="text-2xl font-bold flex items-center gap-1">
-                            <Leaf className="h-5 w-5 text-green-600" />
+                        <p className="text-xs text-muted-foreground">Available</p>
+                        <p className="text-xl font-bold flex items-center gap-1">
+                            <Leaf className="h-4 w-4 text-green-600" />
                             {listing.amount.toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted-foreground">Carbon Credits</p>
+                        <p className="text-xs text-muted-foreground">Credits</p>
                     </div>
 
                     <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Price per Credit</p>
-                        <p className="text-2xl font-bold">{listing.priceEth} ETH</p>
+                        <p className="text-xs text-muted-foreground">Price per Credit</p>
+                        <p className="text-xl font-bold">{listing.priceEth} ETH</p>
                     </div>
                 </div>
 
                 {listing.tokenSymbol && (
                     <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">Token Symbol</p>
+                        <p className="text-xs text-muted-foreground">Token</p>
                         <p className="font-mono text-sm font-semibold">{listing.tokenSymbol}</p>
                     </div>
                 )}
@@ -66,7 +90,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
             </CardContent>
 
             {showBuyButton && listing.active && (
-                <CardFooter className="flex flex-col gap-3">
+                <CardFooter className="flex flex-col gap-3 pt-0">
                     <div className="flex items-center gap-2 w-full">
                         <label className="text-sm text-muted-foreground whitespace-nowrap">Qty:</label>
                         <Input

@@ -17,8 +17,10 @@ type Listing struct {
 // ListingWithDetails includes project and seller information
 type ListingWithDetails struct {
 	Listing
-	ProjectTitle string `json:"projectTitle" db:"project_title"`
-	SellerEmail  string `json:"sellerEmail" db:"seller_email"`
+	ProjectTitle        string  `json:"projectTitle" db:"project_title"`
+	ProjectDescription  string  `json:"projectDescription" db:"project_description"`
+	ProjectImageURL     string  `json:"projectImageUrl" db:"project_image_url"`
+	SellerEmail         string  `json:"sellerEmail" db:"seller_email"`
 	TokenAddress        *string `json:"tokenAddress" db:"token_address"`
 	TokenSymbol         *string `json:"tokenSymbol" db:"token_symbol"`
 	SellerWalletAddress *string `json:"sellerWalletAddress" db:"seller_wallet_address"`
