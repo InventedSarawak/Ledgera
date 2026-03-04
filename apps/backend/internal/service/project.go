@@ -414,9 +414,10 @@ func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID s
 	// We list the entire minted amount at 0.1 ETH per tonne of CO2
 	// This is a temporary hardcoded price as per user request
 	// Pass TokenID 0 for the initial supply listing.
+	zeroTokenID := 0
 	req := validation.CreateListingRequest{
 		ProjectID: projectID,
-		TokenID:   0,
+		TokenID:   &zeroTokenID,
 		Amount:    p.CarbonAmount,
 		PriceETH:  0.1,
 	}

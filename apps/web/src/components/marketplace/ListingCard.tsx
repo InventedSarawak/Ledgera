@@ -48,9 +48,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
                 <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1 min-w-0">
                         <CardTitle className="text-lg leading-tight">{listing.projectTitle}</CardTitle>
-                        <p className="text-xs text-muted-foreground">
-                            Seller: {listing.sellerEmail}
-                        </p>
+                        <p className="text-xs text-muted-foreground">Seller: {listing.sellerEmail}</p>
                     </div>
                     {listing.active ? <Badge variant="default">Active</Badge> : <Badge variant="secondary">Sold</Badge>}
                 </div>

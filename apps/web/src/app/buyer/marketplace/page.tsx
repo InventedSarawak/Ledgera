@@ -40,8 +40,19 @@ export default function BuyerMarketplacePage() {
     })
 
     const confirmPurchaseMutation = useMutation({
-        mutationFn: ({ listingId, txHash, amount, wallet, sourceLotId }: { listingId: string; txHash: string; amount: number; wallet: string; sourceLotId?: number }) =>
-            buyMarketplaceListing(listingId, txHash, wallet, amount, sourceLotId),
+        mutationFn: ({
+            listingId,
+            txHash,
+            amount,
+            wallet,
+            sourceLotId
+        }: {
+            listingId: string
+            txHash: string
+            amount: number
+            wallet: string
+            sourceLotId?: number
+        }) => buyMarketplaceListing(listingId, txHash, wallet, amount, sourceLotId),
         onSuccess: () => {
             toast({
                 title: 'Purchase Successful!',
@@ -130,11 +141,23 @@ export default function BuyerMarketplacePage() {
                 console.error('Buy failed:', error)
                 const err = error as { code?: string | number }
                 if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
-                    toast({ title: 'Transaction Cancelled', description: 'You rejected the transaction in MetaMask', variant: 'destructive' })
+                    toast({
+                        title: 'Transaction Cancelled',
+                        description: 'You rejected the transaction in MetaMask',
+                        variant: 'destructive'
+                    })
                 } else if ((err.code as number) === -32002) {
-                    toast({ title: 'Check MetaMask', description: 'A transaction request is already pending in MetaMask', variant: 'destructive' })
+                    toast({
+                        title: 'Check MetaMask',
+                        description: 'A transaction request is already pending in MetaMask',
+                        variant: 'destructive'
+                    })
                 } else {
-                    toast({ title: 'Purchase Failed', description: error instanceof Error ? error.message : 'An unexpected error occurred', variant: 'destructive' })
+                    toast({
+                        title: 'Purchase Failed',
+                        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+                        variant: 'destructive'
+                    })
                 }
                 setBuyingId(null)
             }
@@ -174,7 +197,9 @@ export default function BuyerMarketplacePage() {
                     {walletAddress ? (
                         <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm">
                             <Wallet className="h-4 w-4 text-green-600" />
-                            <span>{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+                            <span>
+                                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                            </span>
                         </div>
                     ) : (
                         <Button
@@ -246,11 +271,21 @@ export default function BuyerMarketplacePage() {
 
                         {totalPages > 1 && (
                             <div className="flex items-center justify-center gap-2">
-                                <Button variant="outline" size="icon" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1}>
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-                                <Button variant="outline" size="icon" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                                <span className="text-sm text-muted-foreground">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -260,7 +295,12 @@ export default function BuyerMarketplacePage() {
             </div>
 
             {/* Wallet Connection Dialog */}
-            <Dialog open={walletDialogOpen} onOpenChange={(open) => { setWalletDialogOpen(open); if (!open) setPendingBuy(null) }}>
+            <Dialog
+                open={walletDialogOpen}
+                onOpenChange={(open) => {
+                    setWalletDialogOpen(open)
+                    if (!open) setPendingBuy(null)
+                }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -279,7 +319,11 @@ export default function BuyerMarketplacePage() {
                                 <p className="text-sm text-muted-foreground">
                                     Please install the MetaMask browser extension to interact with the blockchain.
                                 </p>
-                                <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open('https://metamask.io/download/', '_blank')}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => window.open('https://metamask.io/download/', '_blank')}>
                                     <ExternalLink className="h-3 w-3" />
                                     Install MetaMask
                                 </Button>
@@ -288,14 +332,22 @@ export default function BuyerMarketplacePage() {
                             <div className="p-4 bg-muted rounded-lg space-y-2">
                                 <p className="font-semibold text-sm">Connect Your Wallet</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Click the button below to connect your MetaMask wallet. You&apos;ll be prompted to approve the connection.
+                                    Click the button below to connect your MetaMask wallet. You&apos;ll be prompted to
+                                    approve the connection.
                                 </p>
                             </div>
                         )}
                     </div>
 
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setWalletDialogOpen(false); setPendingBuy(null) }}>Cancel</Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setWalletDialogOpen(false)
+                                setPendingBuy(null)
+                            }}>
+                            Cancel
+                        </Button>
                         {hasMetaMask && (
                             <Button onClick={handleConnectFromDialog} disabled={isConnecting} className="gap-2">
                                 <Wallet className="h-4 w-4" />

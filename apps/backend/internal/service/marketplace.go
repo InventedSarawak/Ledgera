@@ -53,7 +53,7 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 	}
 
 	if proj.Status != "DEPLOYED" {
-		return nil, fmt.Errorf("project is not deployed")
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "project is not deployed")
 	}
 
 	if proj.SupplierID != sellerID {
@@ -79,7 +79,7 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		ctx.Request().Context(),
 		req.ProjectID,
 		sellerID,
-		req.TokenID,
+		*req.TokenID,
 		scaledAmountToAdd,
 		req.PriceETH,
 	)
@@ -93,7 +93,7 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		Str("project_id", req.ProjectID).
 		Float64("amount", req.Amount).
 		Float64("price_eth", req.PriceETH).
-		Int("token_id", req.TokenID).
+		Int("token_id", *req.TokenID).
 		Msg("marketplace listing created successfully")
 
 	return listing, nil

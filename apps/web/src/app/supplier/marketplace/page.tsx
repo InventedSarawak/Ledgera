@@ -361,147 +361,160 @@ export default function SupplierMarketplacePage() {
                     <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
                             <DialogTitle>Listing Details</DialogTitle>
-                            <DialogDescription>
-                                {selectedListing?.projectTitle}
-                            </DialogDescription>
+                            <DialogDescription>{selectedListing?.projectTitle}</DialogDescription>
                         </DialogHeader>
 
-                        {selectedListing && (() => {
-                            const project = getProjectForListing(selectedListing)
-                            return (
-                                <div className="space-y-5">
-                                    {/* Listing Stats */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <p className="text-xs text-muted-foreground">Credits Listed</p>
-                                            <p className="text-xl font-bold">{selectedListing.amount.toLocaleString()}</p>
+                        {selectedListing &&
+                            (() => {
+                                const project = getProjectForListing(selectedListing)
+                                return (
+                                    <div className="space-y-5">
+                                        {/* Listing Stats */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <p className="text-xs text-muted-foreground">Credits Listed</p>
+                                                <p className="text-xl font-bold">
+                                                    {selectedListing.amount.toLocaleString()}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <p className="text-xs text-muted-foreground">Price / Credit</p>
+                                                <p className="text-xl font-bold">{selectedListing.priceEth} ETH</p>
+                                            </div>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <p className="text-xs text-muted-foreground">Total Value</p>
+                                                <p className="text-xl font-bold">
+                                                    {(selectedListing.amount * selectedListing.priceEth).toFixed(4)} ETH
+                                                </p>
+                                            </div>
+                                            <div className="p-3 bg-muted rounded-lg">
+                                                <p className="text-xs text-muted-foreground">Status</p>
+                                                <Badge
+                                                    variant={selectedListing.active ? 'default' : 'secondary'}
+                                                    className="mt-1">
+                                                    {selectedListing.active ? 'Active' : 'Sold'}
+                                                </Badge>
+                                            </div>
                                         </div>
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <p className="text-xs text-muted-foreground">Price / Credit</p>
-                                            <p className="text-xl font-bold">{selectedListing.priceEth} ETH</p>
-                                        </div>
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <p className="text-xs text-muted-foreground">Total Value</p>
-                                            <p className="text-xl font-bold">
-                                                {(selectedListing.amount * selectedListing.priceEth).toFixed(4)} ETH
-                                            </p>
-                                        </div>
-                                        <div className="p-3 bg-muted rounded-lg">
-                                            <p className="text-xs text-muted-foreground">Status</p>
-                                            <Badge variant={selectedListing.active ? 'default' : 'secondary'} className="mt-1">
-                                                {selectedListing.active ? 'Active' : 'Sold'}
-                                            </Badge>
-                                        </div>
-                                    </div>
 
-                                    <Separator />
+                                        <Separator />
 
-                                    {/* Token Information */}
-                                    <div className="space-y-3">
-                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                            <Coins className="h-4 w-4" />
-                                            Token Information
-                                        </h4>
-                                        {selectedListing.tokenSymbol ? (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm text-muted-foreground">Symbol</span>
-                                                    <Badge variant="outline">{selectedListing.tokenSymbol}</Badge>
-                                                </div>
-                                                {selectedListing.tokenAddress && (
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-sm text-muted-foreground">Contract</span>
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-xs font-mono truncate max-w-[200px]">
-                                                                {selectedListing.tokenAddress}
+                                        {/* Token Information */}
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                <Coins className="h-4 w-4" />
+                                                Token Information
+                                            </h4>
+                                            {selectedListing.tokenSymbol ? (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-muted-foreground">Symbol</span>
+                                                        <Badge variant="outline">{selectedListing.tokenSymbol}</Badge>
+                                                    </div>
+                                                    {selectedListing.tokenAddress && (
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm text-muted-foreground">
+                                                                Contract
                                                             </span>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-6 w-6 shrink-0"
-                                                                onClick={() => handleCopyAddress(selectedListing.tokenAddress!)}>
-                                                                {copied ? (
-                                                                    <Check className="h-3 w-3 text-green-500" />
-                                                                ) : (
-                                                                    <Copy className="h-3 w-3" />
-                                                                )}
-                                                            </Button>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-xs font-mono truncate max-w-[200px]">
+                                                                    {selectedListing.tokenAddress}
+                                                                </span>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-6 w-6 shrink-0"
+                                                                    onClick={() =>
+                                                                        handleCopyAddress(selectedListing.tokenAddress!)
+                                                                    }>
+                                                                    {copied ? (
+                                                                        <Check className="h-3 w-3 text-green-500" />
+                                                                    ) : (
+                                                                        <Copy className="h-3 w-3" />
+                                                                    )}
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">Token not yet deployed</p>
+                                            )}
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Project Metadata */}
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                <Leaf className="h-4 w-4" />
+                                                Project Details
+                                            </h4>
+
+                                            {project ? (
+                                                <div className="space-y-2 text-sm">
+                                                    <p className="text-muted-foreground line-clamp-3">
+                                                        {project.description}
+                                                    </p>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Leaf className="h-3 w-3 text-green-600" />
+                                                            <span>
+                                                                <strong>{project.carbonAmount.toLocaleString()}</strong>{' '}
+                                                                tCO2e
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="h-3 w-3 text-red-600" />
+                                                            <span>
+                                                                <strong>{project.area.toFixed(1)}</strong> ha
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <DollarSign className="h-3 w-3 text-blue-600" />
+                                                            <span>${project.pricePerTonne}/tonne</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="h-3 w-3 text-purple-600" />
+                                                            <span className="text-xs">
+                                                                {project.locationLat.toFixed(4)},{' '}
+                                                                {project.locationLng.toFixed(4)}
+                                                            </span>
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">Token not yet deployed</p>
-                                        )}
-                                    </div>
 
-                                    <Separator />
-
-                                    {/* Project Metadata */}
-                                    <div className="space-y-3">
-                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                            <Leaf className="h-4 w-4" />
-                                            Project Details
-                                        </h4>
-
-                                        {project ? (
-                                            <div className="space-y-2 text-sm">
-                                                <p className="text-muted-foreground line-clamp-3">{project.description}</p>
-
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Leaf className="h-3 w-3 text-green-600" />
-                                                        <span>
-                                                            <strong>{project.carbonAmount.toLocaleString()}</strong> tCO2e
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <MapPin className="h-3 w-3 text-red-600" />
-                                                        <span>
-                                                            <strong>{project.area.toFixed(1)}</strong> ha
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <DollarSign className="h-3 w-3 text-blue-600" />
-                                                        <span>${project.pricePerTonne}/tonne</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <MapPin className="h-3 w-3 text-purple-600" />
-                                                        <span className="text-xs">
-                                                            {project.locationLat.toFixed(4)}, {project.locationLng.toFixed(4)}
-                                                        </span>
-                                                    </div>
+                                                    {project.auditReportUrl && (
+                                                        <div className="flex items-center gap-2 pt-1">
+                                                            <FileCheck className="h-3 w-3 text-green-600" />
+                                                            <a
+                                                                href={project.auditReportUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 hover:underline text-xs">
+                                                                View Audit Report
+                                                            </a>
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Project details not available in current view
+                                                </p>
+                                            )}
+                                        </div>
 
-                                                {project.auditReportUrl && (
-                                                    <div className="flex items-center gap-2 pt-1">
-                                                        <FileCheck className="h-3 w-3 text-green-600" />
-                                                        <a
-                                                            href={project.auditReportUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:underline text-xs">
-                                                            View Audit Report
-                                                        </a>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">
-                                                Project details not available in current view
-                                            </p>
-                                        )}
+                                        {/* Listing Meta */}
+                                        <Separator />
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>
+                                                Listed: {new Date(selectedListing.createdAt).toLocaleDateString()}
+                                            </span>
+                                            <span>ID: {selectedListing.id.slice(0, 8)}...</span>
+                                        </div>
                                     </div>
-
-                                    {/* Listing Meta */}
-                                    <Separator />
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>Listed: {new Date(selectedListing.createdAt).toLocaleDateString()}</span>
-                                        <span>ID: {selectedListing.id.slice(0, 8)}...</span>
-                                    </div>
-                                </div>
-                            )
-                        })()}
+                                )
+                            })()}
 
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>

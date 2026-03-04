@@ -1,10 +1,4 @@
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { PurchaseWithDetails } from '@/lib/types'
 import { ExternalLink, Award, ShieldCheck, FileText, CheckCircle2 } from 'lucide-react'
@@ -43,7 +37,8 @@ export function CertificateDialog({ open, onOpenChange, purchase }: CertificateD
                     <div className="text-center space-y-2">
                         <p className="text-muted-foreground text-sm uppercase tracking-wider">Amount Retired</p>
                         <p className="text-4xl font-bold font-mono tracking-tight text-foreground">
-                            {unscaledAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })} <span className="text-2xl font-normal text-muted-foreground">Tonnes</span>
+                            {unscaledAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })}{' '}
+                            <span className="text-2xl font-normal text-muted-foreground">Tonnes</span>
                         </p>
                         <p className="text-sm text-green-600 dark:text-green-400 font-medium flex items-center justify-center gap-1">
                             <CheckCircle2 className="h-4 w-4" /> Verified Carbon Reduction
@@ -60,7 +55,9 @@ export function CertificateDialog({ open, onOpenChange, purchase }: CertificateD
                                 {purchase.tokenSymbol && (
                                     <div className="mt-1 flex items-center gap-2">
                                         <Badge variant="outline">{purchase.tokenSymbol}</Badge>
-                                        <Badge variant="secondary" className="font-mono">ERC-1155</Badge>
+                                        <Badge variant="secondary" className="font-mono">
+                                            ERC-1155
+                                        </Badge>
                                     </div>
                                 )}
                             </div>
@@ -79,7 +76,9 @@ export function CertificateDialog({ open, onOpenChange, purchase }: CertificateD
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Smart Contract:</span>
                                         <span className="font-mono text-xs">
-                                            {purchase.tokenAddress ? `${purchase.tokenAddress.slice(0, 8)}...${purchase.tokenAddress.slice(-6)}` : 'N/A'}
+                                            {purchase.tokenAddress
+                                                ? `${purchase.tokenAddress.slice(0, 8)}...${purchase.tokenAddress.slice(-6)}`
+                                                : 'N/A'}
                                         </span>
                                     </div>
                                 </div>
@@ -96,7 +95,9 @@ export function CertificateDialog({ open, onOpenChange, purchase }: CertificateD
                             </div>
                             <div className="flex flex-col w-full min-w-0">
                                 <span className="text-xs text-muted-foreground">Transaction Hash</span>
-                                <span className="font-mono truncate">{purchase.txHash.slice(0, 14)}...{purchase.txHash.slice(-10)}</span>
+                                <span className="font-mono truncate">
+                                    {purchase.txHash.slice(0, 14)}...{purchase.txHash.slice(-10)}
+                                </span>
                             </div>
                         </div>
                     </div>

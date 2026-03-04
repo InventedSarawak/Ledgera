@@ -105,7 +105,7 @@ export default function BuyerPortfolioPage() {
         for (const listing of listingsData.data) {
             if (listing.sellerId === userId && listing.active) {
                 const key = `${listing.projectId}-${listing.tokenId}`
-                map.set(key, (map.get(key) || 0) + (listing.scaledAmount / 1000))
+                map.set(key, (map.get(key) || 0) + listing.scaledAmount / 1000)
             }
         }
         return map
@@ -175,9 +175,10 @@ export default function BuyerPortfolioPage() {
         if (amount <= 0 || amount > selectedHolding.availableAmount) {
             toast({
                 title: 'Invalid Amount',
-                description: selectedHolding.availableAmount <= 0
-                    ? 'All your credits are currently listed on the marketplace'
-                    : `Enter an amount between 1 and ${selectedHolding.availableAmount}`,
+                description:
+                    selectedHolding.availableAmount <= 0
+                        ? 'All your credits are currently listed on the marketplace'
+                        : `Enter an amount between 1 and ${selectedHolding.availableAmount}`,
                 variant: 'destructive'
             })
             return
@@ -192,7 +193,7 @@ export default function BuyerPortfolioPage() {
             amount,
             priceEth: price
         })
-    }, [selectedHolding, sellAmount, sellPrice, walletAddress, toast, createListingMutation])
+    }, [selectedHolding, sellAmount, sellPrice, toast, createListingMutation])
 
     const handleConnectFromDialog = useCallback(async () => {
         const address = await connectWallet()
@@ -214,7 +215,9 @@ export default function BuyerPortfolioPage() {
                     {walletAddress ? (
                         <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm">
                             <Wallet className="h-4 w-4 text-green-600" />
-                            <span>{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+                            <span>
+                                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                            </span>
                         </div>
                     ) : (
                         <Button
@@ -319,7 +322,10 @@ export default function BuyerPortfolioPage() {
                                                     <span className="font-semibold">
                                                         {holding.availableAmount.toLocaleString()}
                                                     </span>
-                                                    <span className="text-muted-foreground"> / {holding.totalAmount.toLocaleString()}</span>
+                                                    <span className="text-muted-foreground">
+                                                        {' '}
+                                                        / {holding.totalAmount.toLocaleString()}
+                                                    </span>
                                                 </div>
                                                 {holding.listedAmount > 0 && (
                                                     <Badge variant="secondary" className="text-xs">
@@ -349,8 +355,7 @@ export default function BuyerPortfolioPage() {
                                                 {holding.availableAmount <= 0 ? 'All Listed' : 'Sell Credits'}
                                             </Button>
                                             <p className="text-xs text-muted-foreground">
-                                                Last purchase:{' '}
-                                                {new Date(holding.lastPurchaseDate).toLocaleDateString()}
+                                                Last purchase: {new Date(holding.lastPurchaseDate).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
@@ -384,14 +389,20 @@ export default function BuyerPortfolioPage() {
                                             <p className="text-xs font-mono text-muted-foreground truncate max-w-md">
                                                 {tx.txHash}
                                             </p>
-                                            <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setCertPurchase(tx)}>
+                                            <Button
+                                                variant="link"
+                                                className="p-0 h-auto text-xs"
+                                                onClick={() => setCertPurchase(tx)}>
                                                 View Certificate
                                             </Button>
                                         </div>
 
                                         <div className="text-right">
                                             <p className="font-bold text-lg">
-                                                {(tx.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} Credits
+                                                {(tx.scaledAmount / 1000).toLocaleString(undefined, {
+                                                    maximumFractionDigits: 3
+                                                })}{' '}
+                                                Credits
                                             </p>
                                             <p className="text-sm text-muted-foreground">
                                                 @ {tx.priceEth} ETH = {tx.totalEth.toFixed(6)} ETH
@@ -428,7 +439,10 @@ export default function BuyerPortfolioPage() {
                                     <p className="text-sm text-muted-foreground">
                                         Available: {selectedHolding.availableAmount.toLocaleString()} credits
                                         {selectedHolding.listedAmount > 0 && (
-                                            <span> ({selectedHolding.listedAmount.toLocaleString()} already listed)</span>
+                                            <span>
+                                                {' '}
+                                                ({selectedHolding.listedAmount.toLocaleString()} already listed)
+                                            </span>
                                         )}
                                     </p>
                                     {!walletAddress && (
@@ -455,9 +469,7 @@ export default function BuyerPortfolioPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() =>
-                                                setSellAmount(selectedHolding.availableAmount.toString())
-                                            }
+                                            onClick={() => setSellAmount(selectedHolding.availableAmount.toString())}
                                             className="text-xs whitespace-nowrap">
                                             Max
                                         </Button>
@@ -520,7 +532,11 @@ export default function BuyerPortfolioPage() {
                                     <p className="text-sm text-muted-foreground">
                                         Please install the MetaMask browser extension to interact with the blockchain.
                                     </p>
-                                    <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open('https://metamask.io/download/', '_blank')}>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2"
+                                        onClick={() => window.open('https://metamask.io/download/', '_blank')}>
                                         <ExternalLink className="h-3 w-3" />
                                         Install MetaMask
                                     </Button>
@@ -529,15 +545,17 @@ export default function BuyerPortfolioPage() {
                                 <div className="p-4 bg-muted rounded-lg space-y-2">
                                     <p className="font-semibold text-sm">Connect Your Wallet</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Click the button below to connect your MetaMask wallet.
-                                        Your wallet address will be saved so buyers can send you ETH.
+                                        Click the button below to connect your MetaMask wallet. Your wallet address will
+                                        be saved so buyers can send you ETH.
                                     </p>
                                 </div>
                             )}
                         </div>
 
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setWalletDialogOpen(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setWalletDialogOpen(false)}>
+                                Cancel
+                            </Button>
                             {hasMetaMask && (
                                 <Button onClick={handleConnectFromDialog} disabled={isConnecting} className="gap-2">
                                     <Wallet className="h-4 w-4" />
@@ -549,10 +567,10 @@ export default function BuyerPortfolioPage() {
                 </Dialog>
             </div>
 
-            <CertificateDialog 
-                open={!!certPurchase} 
-                onOpenChange={(open) => !open && setCertPurchase(null)} 
-                purchase={certPurchase} 
+            <CertificateDialog
+                open={!!certPurchase}
+                onOpenChange={(open) => !open && setCertPurchase(null)}
+                purchase={certPurchase}
             />
         </DashboardLayout>
     )

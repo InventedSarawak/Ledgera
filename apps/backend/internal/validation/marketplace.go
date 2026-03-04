@@ -10,7 +10,7 @@ import (
 
 type CreateListingRequest struct {
 	ProjectID string  `json:"projectId" validate:"required,uuid"`
-	TokenID   int     `json:"tokenId" validate:"required,min=0"`
+	TokenID   *int    `json:"tokenId" validate:"required,min=0"`
 	Amount    float64 `json:"amount" validate:"required,gt=0"`
 	PriceETH  float64 `json:"priceEth" validate:"required,gt=0"`
 }
