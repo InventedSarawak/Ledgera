@@ -16,12 +16,7 @@ forge script script/AssetRegistry.s.sol --rpc-url $rpc_url --broadcast --private
 registry_address=$(jq -r '.transactions[0].contractAddress' broadcast/AssetRegistry.s.sol/31337/run-latest.json)
 echo "AssetRegistry deployed at: $registry_address"
 
-echo "Deploying Marketplace..."
-forge script script/Marketplace.s.sol --rpc-url $rpc_url --broadcast --private-key $private_key --json > /dev/null
 
-# Get Marketplace Address from broadcast artifact
-marketplace_address=$(jq -r '.transactions[0].contractAddress' broadcast/Marketplace.s.sol/31337/run-latest.json)
-echo "Marketplace deployed at: $marketplace_address"
 
 cd ..
 
@@ -33,13 +28,11 @@ echo "Updating .env file..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS requires standard extension for -i
     sed -i '' "s/LEDGERA_BLOCKCHAIN\.REGISTRY_ADDRESS=\".*\"/LEDGERA_BLOCKCHAIN.REGISTRY_ADDRESS=\"$registry_address\"/" $env_file
-    sed -i '' "s/LEDGERA_BLOCKCHAIN\.MARKETPLACE_ADDRESS=\".*\"/LEDGERA_BLOCKCHAIN.MARKETPLACE_ADDRESS=\"$marketplace_address\"/" $env_file
 else
     sed -i "s/LEDGERA_BLOCKCHAIN\.REGISTRY_ADDRESS=\".*\"/LEDGERA_BLOCKCHAIN.REGISTRY_ADDRESS=\"$registry_address\"/" $env_file
-    sed -i "s/LEDGERA_BLOCKCHAIN\.MARKETPLACE_ADDRESS=\".*\"/LEDGERA_BLOCKCHAIN.MARKETPLACE_ADDRESS=\"$marketplace_address\"/" $env_file
 fi
 
 echo "Environment updated with new contract addresses."
 echo "Registry: $registry_address"
-echo "Marketplace: $marketplace_address"
+
 

@@ -9,6 +9,9 @@ tasks:
         desc: Start anvil and deploy contracts
         cmds:
             - |
+                echo "Checking for running Anvil instance..."
+                pkill anvil || true
+
                 echo "Starting Anvil..."
 
                 # Start anvil in background but keep logs in terminal
