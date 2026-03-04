@@ -83,7 +83,6 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 	payload := project.UpdateProjectPayload{
 		ContractAddress: &tokenAddress,
 		TokenSymbol:     &tokenSymbol,
-		// Status:          ptrProjectStatus(project.ProjectStatusDeployed), // Do not set to DEPLOYED yet, wait for minting
 	}
 
 	_, err = s.projectRepo.Update(ctx.Request().Context(), projectID, payload, nil, nil)
@@ -101,8 +100,8 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 	return nil
 }
 
-// MintProjectTokens mints tokens for a project to the supplier
-func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID string, amount *big.Int) error {
+// MintProjectTokens mints initial supply to the supplier (Token ID 0)
+func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID string, unscaledAmount float64) error {
 	if s.client == nil {
 		return fmt.Errorf("blockchain client not initialized")
 	}
@@ -139,8 +138,15 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 
 	recipientAddress := *supplier.WalletAddress
 
-	// 4. Mint tokens via blockchain client
-	err = s.client.MintTokens(ctx, *proj.ContractAddress, recipientAddress, amount)
+	// Scale the amount by 1000 for ERC-1155 smart contract logic
+	scaledAmountStr := fmt.Sprintf("%.0f", unscaledAmount*1000)
+	scaledAmountBig, ok := new(big.Int).SetString(scaledAmountStr, 10)
+	if !ok {
+		return fmt.Errorf("failed to parse scaled amount as big.Int")
+	}
+
+	// 4. Mint tokens via blockchain client (MintInitialSupply -> TokenID 0)
+	err = s.client.MintInitialSupply(ctx, *proj.ContractAddress, recipientAddress, scaledAmountBig)
 	if err != nil {
 		return fmt.Errorf("failed to mint tokens: %w", err)
 	}
@@ -151,7 +157,6 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 // GenerateTokenSymbol creates a token symbol from the project title
 // Example: "Amazon Rainforest Project" -> "AMAZ"
 func (s *BlockchainService) generateTokenSymbol(title string) string {
-	// Simple implementation: take first 4 letters of first word and uppercase
 	if len(title) < 4 {
 		return "CARB"
 	}
@@ -173,8 +178,3 @@ func (s *BlockchainService) generateTokenSymbol(title string) string {
 	// Ensure uppercase
 	return strings.ToUpper(symbol)
 }
-
-// Helper function to create pointer to ProjectStatus
-// func ptrProjectStatus(status project.ProjectStatus) *project.ProjectStatus {
-// 	return &status
-// }

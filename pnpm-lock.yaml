@@ -172,6 +172,25 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/api-gen:
+    dependencies:
+      pino:
+        specifier: ^10.2.1
+        version: 10.2.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.14
+        version: 22.19.3
+      concurrently:
+        specifier: ^9.1.2
+        version: 9.2.1
+      tsc-alias:
+        specifier: ^1.8.12
+        version: 1.8.16
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
   packages/emails:
     dependencies:
       '@react-email/components':
@@ -199,6 +218,9 @@ importers:
       '@anatine/zod-openapi':
         specifier: ^2.2.7
         version: 2.2.8(openapi3-ts@2.0.2)(zod@3.25.76)
+      '@ledgera/api-gen':
+        specifier: workspace:*
+        version: link:../api-gen
       '@ledgera/zod':
         specifier: workspace:*
         version: link:../zod

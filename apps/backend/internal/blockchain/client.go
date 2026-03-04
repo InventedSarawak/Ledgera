@@ -137,8 +137,8 @@ func (c *Client) DeployProjectToken(ctx context.Context, name string, symbol str
 	return "", fmt.Errorf("failed to find AssetCreated event in transaction logs (count: %d)", len(receipt.Logs))
 }
 
-// MintTokens mints tokens to a specific address
-func (c *Client) MintTokens(ctx context.Context, tokenAddress string, to string, amount *big.Int) error {
+// MintInitialSupply mints tokens to a specific address as Token ID 0
+func (c *Client) MintInitialSupply(ctx context.Context, tokenAddress string, to string, scaledAmount *big.Int) error {
 	auth, err := c.GetTransactOpts(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get transaction options: %w", err)
@@ -150,10 +150,10 @@ func (c *Client) MintTokens(ctx context.Context, tokenAddress string, to string,
 		return fmt.Errorf("failed to load token contract: %w", err)
 	}
 
-	// Call AssetToken.mint
-	tx, err := tokenContract.Mint(auth, common.HexToAddress(to), amount)
+	// Call AssetToken.MintInitialSupply (lowercase m inside go generated binding for mintInitialSupply)
+	tx, err := tokenContract.MintInitialSupply(auth, common.HexToAddress(to), scaledAmount)
 	if err != nil {
-		return fmt.Errorf("failed to mint tokens: %w", err)
+		return fmt.Errorf("failed to mint initial supply: %w", err)
 	}
 
 	// Wait for transaction receipt
@@ -202,9 +202,6 @@ func (c *Client) VerifyETHPayment(ctx context.Context, txHash string, expectedTo
 	}
 
 	// Verify amount with tolerance for floating-point precision differences
-	// between frontend (JavaScript) and backend (Go) wei calculations.
-	// e.g., 24 * 0.1 = 2.4000000000000004 in float64, causing ~157 wei delta.
-	// Allow 0.1% tolerance to handle this while still catching genuine underpayments.
 	tolerance := new(big.Int).Div(expectedAmountWei, big.NewInt(1000)) // 0.1%
 	minAcceptable := new(big.Int).Sub(expectedAmountWei, tolerance)
 	if tx.Value().Cmp(minAcceptable) < 0 {
@@ -215,22 +212,62 @@ func (c *Client) VerifyETHPayment(ctx context.Context, txHash string, expectedTo
 	return nil
 }
 
-// TransferTokensTobuyer mints tokens to the buyer's address (admin-initiated)
-// This is used in the marketplace buy flow where the admin mints tokens to the buyer
-// after verifying ETH payment to the seller
-func (c *Client) TransferTokensToBuyer(ctx context.Context, tokenAddress string, buyerAddress string, amount *big.Int) error {
-	return c.MintTokens(ctx, tokenAddress, buyerAddress, amount)
+// PurchaseLot calls the purchaseLot method to create a new lot for a buyer
+func (c *Client) PurchaseLot(ctx context.Context, tokenAddress string, sourceLotId *big.Int, scaledAmount *big.Int, buyerAddress string) (*big.Int, error) {
+	auth, err := c.GetTransactOpts(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transaction options: %w", err)
+	}
+
+	tokenContract, err := token.NewToken(common.HexToAddress(tokenAddress), c.Eth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load token contract: %w", err)
+	}
+
+	tx, err := tokenContract.PurchaseLot(auth, sourceLotId, scaledAmount, common.HexToAddress(buyerAddress))
+	if err != nil {
+		return nil, fmt.Errorf("failed to purchase lot: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(ctx, c.Eth, tx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to wait for transaction: %w", err)
+	}
+
+	if receipt.Status == 0 {
+		return nil, fmt.Errorf("purchase transaction failed")
+	}
+
+	// Check logs for CertificateGenerated event -> (newLotId)
+	found := false
+	var newLotId *big.Int
+
+	// Parse the CertificateGenerated event to get the newLotId
+	for _, log := range receipt.Logs {
+		event, err := tokenContract.ParseCertificateGenerated(*log)
+		if err == nil {
+			newLotId = event.NewLotId
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("failed to parse new lot ID from CertificateGenerated event")
+	}
+
+	return newLotId, nil
 }
 
-// GetTokenBalance returns the on-chain ERC-20 token balance for a wallet address
-func (c *Client) GetTokenBalance(ctx context.Context, tokenAddress string, walletAddress string) (*big.Int, error) {
+// GetTokenBalance returns the on-chain ERC-1155 token balance for a wallet address and token ID
+func (c *Client) GetTokenBalance(ctx context.Context, tokenAddress string, walletAddress string, tokenId *big.Int) (*big.Int, error) {
 	tokenContract, err := token.NewToken(common.HexToAddress(tokenAddress), c.Eth)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load token contract: %w", err)
 	}
 
 	callOpts := c.GetCallOpts(ctx)
-	balance, err := tokenContract.BalanceOf(callOpts, common.HexToAddress(walletAddress))
+	balance, err := tokenContract.BalanceOf(callOpts, common.HexToAddress(walletAddress), tokenId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token balance: %w", err)
 	}

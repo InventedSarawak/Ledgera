@@ -30,6 +30,7 @@ func TestMarketplace_CreateListing(t *testing.T) {
 	// Create listing payload
 	payload := map[string]interface{}{
 		"projectId": projectID,
+		"tokenId":   0,
 		"amount":    100.5,
 		"priceEth":  0.01,
 	}
@@ -44,7 +45,7 @@ func TestMarketplace_CreateListing(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Contains(t, rec.Body.String(), "projectId")
-	assert.Contains(t, rec.Body.String(), "100.5")
+	assert.Contains(t, rec.Body.String(), "100500")
 }
 
 func TestMarketplace_ListActiveListings(t *testing.T) {
@@ -145,6 +146,7 @@ func TestMarketplace_CannotListUndeployedProject(t *testing.T) {
 	// Try to create listing
 	payload := map[string]interface{}{
 		"projectId": projectID,
+		"tokenId":   0,
 		"amount":    100.5,
 		"priceEth":  0.01,
 	}
@@ -230,6 +232,7 @@ func createListing(t *testing.T, e *echo.Echo, projectID string, amount float64,
 
 	payload := map[string]interface{}{
 		"projectId": projectID,
+		"tokenId":   0,
 		"amount":    amount,
 		"priceEth":  priceEth,
 	}

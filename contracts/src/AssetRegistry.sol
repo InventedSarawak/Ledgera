@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import './AssetToken.sol';
+import {AssetToken} from './AssetToken.sol';
 
 contract AssetRegistry {
     event AssetCreated(address indexed assetAddress, string name, string symbol);

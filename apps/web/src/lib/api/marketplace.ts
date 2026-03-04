@@ -3,6 +3,7 @@ import { ListingWithDetails, MarketplaceListing, PaginatedResponse } from '@/lib
 
 export interface CreateListingData {
     projectId: string
+    tokenId: number
     amount: number
     priceEth: number
 }
@@ -67,9 +68,10 @@ export async function buyMarketplaceListing(
     listingId: string,
     txHash: string,
     buyerWallet: string,
-    amount: number
+    amount: number,
+    sourceLotId?: number
 ): Promise<void> {
-    await axiosInstance.post(`/marketplace/listings/${listingId}/buy`, { txHash, buyerWallet, amount })
+    await axiosInstance.post(`/marketplace/listings/${listingId}/buy`, { txHash, buyerWallet, amount, sourceLotId })
 }
 
 /**

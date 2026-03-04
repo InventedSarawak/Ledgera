@@ -6,12 +6,14 @@ import { z } from 'zod'
 
 export const CreateListingSchema = z.object({
     projectId: z.string().uuid('Invalid project ID'),
+    tokenId: z.number().int().nonnegative('Invalid token ID'),
     amount: z.number().positive('Amount must be greater than 0'),
     priceEth: z.number().positive('Price must be greater than 0')
 })
 
 export const BuyListingSchema = z.object({
-    listingId: z.string().uuid('Invalid listing ID')
+    listingId: z.string().uuid('Invalid listing ID'),
+    sourceLotId: z.number().int().nonnegative().optional()
 })
 
 export const CancelListingSchema = z.object({
@@ -33,7 +35,8 @@ export const ListingSchema = z.object({
     id: z.string().uuid(),
     projectId: z.string().uuid(),
     sellerId: z.string(),
-    amount: z.number(),
+    tokenId: z.number().int().nonnegative(),
+    scaledAmount: z.number().int().nonnegative(),
     priceEth: z.number(),
     active: z.boolean(),
     createdAt: z.string(),

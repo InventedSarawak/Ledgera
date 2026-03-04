@@ -22,12 +22,14 @@ import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/hooks/use-wallet'
 import { useState, useMemo, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
+import { CertificateDialog } from '@/components/marketplace/CertificateDialog'
 
 interface Holding {
     projectId: string
     projectTitle: string
     tokenSymbol: string | null
     tokenAddress: string | null
+    tokenId: number
     totalAmount: number
     listedAmount: number
     availableAmount: number
@@ -46,6 +48,7 @@ export default function BuyerPortfolioPage() {
     const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null)
     const [sellAmount, setSellAmount] = useState('')
     const [sellPrice, setSellPrice] = useState('')
+    const [certPurchase, setCertPurchase] = useState<PurchaseWithDetails | null>(null)
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['buyer-purchases'],
@@ -101,30 +104,34 @@ export default function BuyerPortfolioPage() {
         if (!listingsData?.data || !userId) return map
         for (const listing of listingsData.data) {
             if (listing.sellerId === userId && listing.active) {
-                map.set(listing.projectId, (map.get(listing.projectId) || 0) + listing.amount)
+                const key = `${listing.projectId}-${listing.tokenId}`
+                map.set(key, (map.get(key) || 0) + (listing.scaledAmount / 1000))
             }
         }
         return map
     }, [listingsData, userId])
 
-    // Aggregate by project for portfolio view
+    // Aggregate by project AND tokenId for portfolio view to maintain lot provenance
     const projectMap = new Map<string, Holding>()
     for (const p of purchases) {
-        const existing = projectMap.get(p.projectId)
+        const key = `${p.projectId}-${p.tokenId}`
+        const unscaledAmount = p.scaledAmount / 1000
+        const existing = projectMap.get(key)
         if (existing) {
-            existing.totalAmount += p.amount
+            existing.totalAmount += unscaledAmount
             existing.totalSpentEth += p.totalEth
             existing.purchaseCount += 1
             if (p.createdAt > existing.lastPurchaseDate) {
                 existing.lastPurchaseDate = p.createdAt
             }
         } else {
-            projectMap.set(p.projectId, {
+            projectMap.set(key, {
                 projectId: p.projectId,
                 projectTitle: p.projectTitle,
                 tokenSymbol: p.tokenSymbol,
                 tokenAddress: p.tokenAddress,
-                totalAmount: p.amount,
+                tokenId: p.tokenId,
+                totalAmount: unscaledAmount,
                 listedAmount: 0,
                 availableAmount: 0,
                 totalSpentEth: p.totalEth,
@@ -136,7 +143,8 @@ export default function BuyerPortfolioPage() {
 
     // Apply listed amounts
     for (const [, holding] of projectMap) {
-        holding.listedAmount = listedByProject.get(holding.projectId) || 0
+        const key = `${holding.projectId}-${holding.tokenId}`
+        holding.listedAmount = listedByProject.get(key) || 0
         holding.availableAmount = Math.max(0, holding.totalAmount - holding.listedAmount)
     }
 
@@ -180,6 +188,7 @@ export default function BuyerPortfolioPage() {
         }
         createListingMutation.mutate({
             projectId: selectedHolding.projectId,
+            tokenId: selectedHolding.tokenId,
             amount,
             priceEth: price
         })
@@ -375,11 +384,14 @@ export default function BuyerPortfolioPage() {
                                             <p className="text-xs font-mono text-muted-foreground truncate max-w-md">
                                                 {tx.txHash}
                                             </p>
+                                            <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setCertPurchase(tx)}>
+                                                View Certificate
+                                            </Button>
                                         </div>
 
                                         <div className="text-right">
                                             <p className="font-bold text-lg">
-                                                {tx.amount.toLocaleString()} Credits
+                                                {(tx.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} Credits
                                             </p>
                                             <p className="text-sm text-muted-foreground">
                                                 @ {tx.priceEth} ETH = {tx.totalEth.toFixed(6)} ETH
@@ -536,6 +548,12 @@ export default function BuyerPortfolioPage() {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            <CertificateDialog 
+                open={!!certPurchase} 
+                onOpenChange={(open) => !open && setCertPurchase(null)} 
+                purchase={certPurchase} 
+            />
         </DashboardLayout>
     )
 }

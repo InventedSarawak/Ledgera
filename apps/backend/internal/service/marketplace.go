@@ -10,6 +10,7 @@ import (
 	"github.com/inventedsarawak/ledgera/internal/model"
 	"github.com/inventedsarawak/ledgera/internal/repository"
 	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/validation"
 	"github.com/labstack/echo/v4"
 )
 
@@ -21,7 +22,13 @@ type MarketplaceService struct {
 	blockchainService *BlockchainService
 }
 
-func NewMarketplaceService(s *server.Server, marketplaceRepo *repository.MarketplaceRepository, projectRepo *repository.ProjectRepository, userRepo *repository.UserRepository, blockchainService *BlockchainService) *MarketplaceService {
+func NewMarketplaceService(
+	s *server.Server,
+	marketplaceRepo *repository.MarketplaceRepository,
+	projectRepo *repository.ProjectRepository,
+	userRepo *repository.UserRepository,
+	blockchainService *BlockchainService,
+) *MarketplaceService {
 	return &MarketplaceService{
 		server:            s,
 		marketplaceRepo:   marketplaceRepo,
@@ -32,93 +39,63 @@ func NewMarketplaceService(s *server.Server, marketplaceRepo *repository.Marketp
 }
 
 // CreateListing creates a new marketplace listing
-func (s *MarketplaceService) CreateListing(ctx echo.Context, projectID, sellerID string, amount, priceETH float64) (*model.Listing, error) {
+func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.CreateListingRequest, sellerID string) (*model.Listing, error) {
 	logger := middleware.GetLogger(ctx)
-	logger.Info().
-		Str("project_id", projectID).
-		Str("seller_id", sellerID).
-		Float64("amount", amount).
-		Float64("price_eth", priceETH).
-		Msg("creating marketplace listing")
 
-	// 1. Verify project exists and is deployed
-	project, err := s.projectRepo.FindByID(ctx.Request().Context(), projectID)
+	// 1. Fetch project to ensure it exists and is deployed
+	proj, err := s.projectRepo.FindByID(ctx.Request().Context(), req.ProjectID)
 	if err != nil {
-		return nil, fmt.Errorf("project not found: %w", err)
+		return nil, fmt.Errorf("failed to fetch project: %w", err)
 	}
 
-	if project.ContractAddress == nil || *project.ContractAddress == "" {
-		return nil, echo.NewHTTPError(http.StatusBadRequest, "project not deployed yet")
+	if proj == nil {
+		return nil, fmt.Errorf("project not found")
 	}
 
-	// 2. Check how much the seller already has listed for this project
-	alreadyListed, err := s.marketplaceRepo.GetActiveListedAmount(ctx.Request().Context(), sellerID, projectID)
+	if proj.Status != "DEPLOYED" {
+		return nil, fmt.Errorf("project is not deployed")
+	}
+
+	if proj.SupplierID != sellerID {
+		return nil, fmt.Errorf("only the project supplier can create initial listings")
+	}
+
+	// Calculate scaled amounts (1 credit = 1000 units)
+	scaledAmountToAdd := int64(math.Round(req.Amount * 1000))
+	totalProjectCarbonScaled := int64(math.Round(proj.CarbonAmount * 1000))
+
+	// 2. Validate that the supplier has enough unlisted tokens
+	activeListedScaled, err := s.marketplaceRepo.GetActiveListedAmountScaled(ctx.Request().Context(), sellerID, proj.ID.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to check existing listings: %w", err)
+		return nil, fmt.Errorf("failed to check active listings: %w", err)
 	}
 
-	// 3. Verify seller has enough tokens
-	if s.blockchainService != nil && s.blockchainService.client != nil {
-		// On-chain validation: check actual token balance
-		seller, err := s.userRepo.FindByClerkID(ctx.Request().Context(), sellerID)
-		if err != nil || seller == nil {
-			return nil, echo.NewHTTPError(http.StatusBadRequest, "seller not found")
-		}
-		if seller.WalletAddress == nil || *seller.WalletAddress == "" {
-			return nil, echo.NewHTTPError(http.StatusBadRequest, "please connect your wallet before creating a listing")
-		}
-
-		balance, err := s.blockchainService.client.GetTokenBalance(
-			ctx.Request().Context(),
-			*project.ContractAddress,
-			*seller.WalletAddress,
-		)
-		if err != nil {
-			logger.Warn().Err(err).Msg("failed to check on-chain balance, falling back to DB check")
-		} else {
-			// Convert from 18-decimal token units to human-readable float
-			decimals := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-			balanceFloat, _ := new(big.Float).Quo(
-				new(big.Float).SetInt(balance),
-				new(big.Float).SetInt(decimals),
-			).Float64()
-
-			if amount+alreadyListed > balanceFloat {
-				return nil, echo.NewHTTPError(http.StatusBadRequest,
-					fmt.Sprintf("insufficient balance: you have %.2f credits (%.2f already listed), but tried to list %.2f",
-						balanceFloat, alreadyListed, amount))
-			}
-		}
-	} else {
-		// Fallback DB validation when blockchain client is not available
-		if project.SupplierID == sellerID {
-			// Supplier: check against project's total carbon amount
-			if amount+alreadyListed > project.CarbonAmount {
-				return nil, echo.NewHTTPError(http.StatusBadRequest,
-					fmt.Sprintf("insufficient credits: project has %.2f total credits (%.2f already listed), but tried to list %.2f",
-						project.CarbonAmount, alreadyListed, amount))
-			}
-		} else {
-			// Buyer reselling: check against total purchased amount
-			totalPurchased, err := s.marketplaceRepo.GetTotalPurchasedAmount(ctx.Request().Context(), sellerID, projectID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to check purchase history: %w", err)
-			}
-			if amount+alreadyListed > totalPurchased {
-				return nil, echo.NewHTTPError(http.StatusBadRequest,
-					fmt.Sprintf("insufficient credits: you own %.2f credits (%.2f already listed), but tried to list %.2f",
-						totalPurchased, alreadyListed, amount))
-			}
-		}
+	if activeListedScaled+scaledAmountToAdd > totalProjectCarbonScaled {
+		return nil, fmt.Errorf("cannot list more than the total project carbon amount (available to list: %f)", float64(totalProjectCarbonScaled-activeListedScaled)/1000.0)
 	}
 
-	// 4. Create listing in database
-	listing, err := s.marketplaceRepo.CreateListing(ctx.Request().Context(), projectID, sellerID, amount, priceETH)
+	// 3. Create the listing in the database
+	listing, err := s.marketplaceRepo.CreateListing(
+		ctx.Request().Context(),
+		req.ProjectID,
+		sellerID,
+		req.TokenID,
+		scaledAmountToAdd,
+		req.PriceETH,
+	)
 	if err != nil {
+		logger.Error().Err(err).Msg("failed to create listing in database")
 		return nil, fmt.Errorf("failed to create listing: %w", err)
 	}
 
-	logger.Info().Str("listing_id", listing.ID).Msg("marketplace listing created")
+	logger.Info().
+		Str("listing_id", listing.ID).
+		Str("project_id", req.ProjectID).
+		Float64("amount", req.Amount).
+		Float64("price_eth", req.PriceETH).
+		Int("token_id", req.TokenID).
+		Msg("marketplace listing created successfully")
+
 	return listing, nil
 }
 
@@ -133,186 +110,173 @@ func (s *MarketplaceService) GetListing(ctx echo.Context, listingID string) (*mo
 }
 
 // BuyListing handles purchasing a listing with on-chain verification
-func (s *MarketplaceService) BuyListing(ctx echo.Context, listingID, buyerID, txHash, buyerWallet string, buyAmount float64) error {
+func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyListingRequest, buyerID string) error {
 	logger := middleware.GetLogger(ctx)
-	logger.Info().
-		Str("listing_id", listingID).
-		Str("buyer_id", buyerID).
-		Str("tx_hash", txHash).
-		Str("buyer_wallet", buyerWallet).
-		Float64("buy_amount", buyAmount).
-		Msg("processing listing purchase")
 
-	// 1. Get listing
-	listing, err := s.marketplaceRepo.FindListingByID(ctx.Request().Context(), listingID)
+	// 1. Fetch listing and lock it (or at least check it's active)
+	listing, err := s.marketplaceRepo.FindListingByID(ctx.Request().Context(), req.ListingID)
 	if err != nil {
-		return fmt.Errorf("listing not found: %w", err)
+		return fmt.Errorf("failed to fetch listing: %w", err)
 	}
-
+	if listing == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "listing not found")
+	}
 	if !listing.Active {
-		return echo.NewHTTPError(http.StatusBadRequest, "listing is not active")
+		return echo.NewHTTPError(http.StatusBadRequest, "listing is no longer active")
 	}
 
-	// Validate buy amount against available
-	if buyAmount > listing.Amount {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("requested %.2f credits but only %.2f available", buyAmount, listing.Amount))
-	}
+	scaledBuyAmount := int64(math.Round(req.Amount * 1000))
 
-	// Prevent self-purchase
+	if scaledBuyAmount > listing.ScaledAmount {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("requested amount exceeds available listing amount (%f)", listing.DisplayAmount()))
+	}
 	if listing.SellerID == buyerID {
 		return echo.NewHTTPError(http.StatusBadRequest, "cannot buy your own listing")
 	}
 
-	// 2. Get project to fetch contract address
-	project, err := s.projectRepo.FindByID(ctx.Request().Context(), listing.ProjectID)
+	// 2. Fetch project details
+	proj, err := s.projectRepo.FindByID(ctx.Request().Context(), listing.ProjectID)
 	if err != nil {
-		return fmt.Errorf("project not found: %w", err)
+		return fmt.Errorf("failed to fetch project: %w", err)
+	}
+	if proj == nil || proj.ContractAddress == nil {
+		return fmt.Errorf("project or contract address not found")
 	}
 
-	if project.ContractAddress == nil {
-		return fmt.Errorf("project not deployed")
-	}
-
-	// 3. Get seller info to verify payment recipient
+	// 3. Fetch seller details to get their wallet address
 	seller, err := s.userRepo.FindByClerkID(ctx.Request().Context(), listing.SellerID)
-	if err != nil || seller == nil {
-		return fmt.Errorf("seller not found")
+	if err != nil {
+		return fmt.Errorf("failed to fetch seller: %w", err)
 	}
-	if seller.WalletAddress == nil || *seller.WalletAddress == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "seller has no wallet address")
-	}
-
-	// 4. Buyer wallet is provided directly from MetaMask via the request
-	if buyerWallet == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "please connect your wallet before purchasing")
+	if seller == nil || seller.WalletAddress == nil {
+		return fmt.Errorf("seller wallet address not configured")
 	}
 
-	// 5. Verify ETH payment on-chain (based on requested amount, not full listing)
-	totalPriceETH := buyAmount * listing.PriceETH
-	expectedWei := ethToWei(totalPriceETH)
+	// 4. Calculate expected ETH amount
+	expectedEth := req.Amount * listing.PriceETH
+	expectedWei := ethToWei(expectedEth)
 
 	logger.Info().
-		Str("tx_hash", txHash).
+		Str("listing_id", listing.ID).
+		Str("buyer_id", buyerID).
 		Str("seller_wallet", *seller.WalletAddress).
-		Float64("buy_amount", buyAmount).
-		Float64("total_price_eth", totalPriceETH).
-		Str("expected_wei", expectedWei.String()).
-		Msg("verifying ETH payment on-chain")
+		Str("tx_hash", req.TxHash).
+		Float64("amount", req.Amount).
+		Float64("expected_eth", expectedEth).
+		Msg("verifying ETH payment for marketplace purchase")
 
-	if s.blockchainService.client != nil {
-		err = s.blockchainService.client.VerifyETHPayment(
-			ctx.Request().Context(),
-			txHash,
-			*seller.WalletAddress,
-			expectedWei,
-		)
-		if err != nil {
-			logger.Error().Err(err).Msg("ETH payment verification failed")
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("payment verification failed: %v", err))
-		}
-
-		logger.Info().Msg("ETH payment verified successfully")
-
-		// 6. Transfer tokens to buyer (mint via admin key)
-		tokenAmount := new(big.Int)
-		tokenAmount.SetInt64(int64(buyAmount))
-		// Convert to token decimals (18 decimals for ERC20)
-		decimals := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-		tokenAmount.Mul(tokenAmount, decimals)
-
-		err = s.blockchainService.client.TransferTokensToBuyer(
-			ctx.Request().Context(),
-			*project.ContractAddress,
-			buyerWallet,
-			tokenAmount,
-		)
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to transfer tokens to buyer")
-			return fmt.Errorf("failed to transfer tokens: %w", err)
-		}
-
-		logger.Info().
-			Str("buyer_wallet", buyerWallet).
-			Str("token_amount", tokenAmount.String()).
-			Msg("tokens transferred to buyer")
-	} else {
-		logger.Warn().Msg("blockchain client not initialized, skipping on-chain verification")
+	// 5. Verify the on-chain ETH payment (requires blockchain client)
+	if s.server.Blockchain == nil {
+		return fmt.Errorf("blockchain client not initialized")
 	}
 
-	// 7. Update listing: complete if fully bought, reduce amount if partial
-	if buyAmount >= listing.Amount {
-		err = s.marketplaceRepo.CompleteListing(ctx.Request().Context(), listingID)
-		if err != nil {
-			return fmt.Errorf("failed to complete listing: %w", err)
-		}
-	} else {
-		err = s.marketplaceRepo.ReduceListingAmount(ctx.Request().Context(), listingID, buyAmount)
-		if err != nil {
-			return fmt.Errorf("failed to reduce listing amount: %w", err)
-		}
-	}
-
-	// 8. Record purchase in database
-	purchaseRecord := model.Purchase{
-		BuyerID:   buyerID,
-		ListingID: listingID,
-		ProjectID: listing.ProjectID,
-		SellerID:  listing.SellerID,
-		Amount:    buyAmount,
-		PriceETH:  listing.PriceETH,
-		TotalETH:  totalPriceETH,
-		TxHash:    txHash,
-	}
-	_, err = s.marketplaceRepo.RecordPurchase(ctx.Request().Context(), purchaseRecord)
+	err = s.server.Blockchain.VerifyETHPayment(
+		ctx.Request().Context(),
+		req.TxHash,
+		*seller.WalletAddress,
+		expectedWei,
+	)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to record purchase (listing already updated)")
+		logger.Error().Err(err).Msg("ETH payment verification failed")
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("ETH payment verification failed: %v", err))
 	}
 
-	logger.Info().Str("listing_id", listingID).Float64("amount_bought", buyAmount).Msg("listing purchase completed successfully")
+	logger.Info().Msg("ETH payment verified successfully, transferring tokens")
+
+	sourceLotId := big.NewInt(int64(listing.TokenID))
+	scaledAmountBig := big.NewInt(scaledBuyAmount)
+
+	// 6. Transfer tokens (AssetToken.purchaseLot generates a new ERC-1155 Token ID)
+	newLotId, err := s.server.Blockchain.PurchaseLot(
+		ctx.Request().Context(),
+		*proj.ContractAddress,
+		sourceLotId,
+		scaledAmountBig,
+		req.BuyerWallet,
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to transfer tokens to buyer")
+		return fmt.Errorf("failed to transfer tokens: %w", err)
+	}
+
+	// 7. Update listing amount or mark as complete
+	if scaledBuyAmount == listing.ScaledAmount {
+		err = s.marketplaceRepo.CompleteListing(ctx.Request().Context(), listing.ID)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to complete listing")
+			// Log error but continue as on-chain transaction succeeded
+		}
+	} else {
+		err = s.marketplaceRepo.ReduceListingAmount(ctx.Request().Context(), listing.ID, scaledBuyAmount)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to reduce listing amount")
+		}
+	}
+
+	// 8. Record the purchase
+	purchase := model.Purchase{
+		BuyerID:      buyerID,
+		ListingID:    listing.ID,
+		ProjectID:    listing.ProjectID,
+		SellerID:     listing.SellerID,
+		TokenID:      int(newLotId.Int64()),
+		ScaledAmount: scaledBuyAmount,
+		PriceETH:     listing.PriceETH,
+		TotalETH:     expectedEth,
+		TxHash:       req.TxHash,
+	}
+
+	_, err = s.marketplaceRepo.RecordPurchase(ctx.Request().Context(), purchase)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to record purchase")
+		return fmt.Errorf("failed to record purchase: %w", err)
+	}
+
+	logger.Info().
+		Str("listing_id", listing.ID).
+		Str("buyer_id", buyerID).
+		Int("token_id", int(newLotId.Int64())).
+		Float64("amount", req.Amount).
+		Msg("marketplace purchase completed successfully")
+
 	return nil
 }
 
 // CancelListing cancels a listing
 func (s *MarketplaceService) CancelListing(ctx echo.Context, listingID, userID string) error {
-	logger := middleware.GetLogger(ctx)
-
-	// 1. Get listing
 	listing, err := s.marketplaceRepo.FindListingByID(ctx.Request().Context(), listingID)
 	if err != nil {
-		return fmt.Errorf("listing not found: %w", err)
+		return fmt.Errorf("failed to fetch listing: %w", err)
 	}
 
-	// 2. Verify ownership
+	if listing == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "listing not found")
+	}
+
 	if listing.SellerID != userID {
-		return fmt.Errorf("unauthorized: only the seller can cancel this listing")
+		// Try to verify if it's an admin (to be safe against cross-user deletions)
+		user, err := s.userRepo.FindByClerkID(ctx.Request().Context(), userID)
+		if err != nil || user == nil || user.Role != "ADMIN" {
+			return echo.NewHTTPError(http.StatusForbidden, "not authorized to cancel this listing")
+		}
 	}
 
-	// 3. Cancel listing
-	err = s.marketplaceRepo.CancelListing(ctx.Request().Context(), listingID)
-	if err != nil {
-		return fmt.Errorf("failed to cancel listing: %w", err)
-	}
-
-	logger.Info().Str("listing_id", listingID).Msg("listing cancelled")
-	return nil
+	return s.marketplaceRepo.CancelListing(ctx.Request().Context(), listingID)
 }
 
-// ethToWei converts ETH (float64) to Wei (big.Int)
+// ethToWei logic unchanged
 func ethToWei(ethAmount float64) *big.Int {
-	// Multiply by 10^18 to convert ETH to Wei
-	weiFloat := ethAmount * math.Pow(10, 18)
-	wei := new(big.Int)
-	wei.SetString(fmt.Sprintf("%.0f", weiFloat), 10)
-	return wei
+	// 1 ETH = 10^18 Wei
+	ethBigFloat := new(big.Float).SetFloat64(ethAmount)
+	weiMultiplier := new(big.Float).SetFloat64(1e18)
+
+	weiBigFloat := new(big.Float).Mul(ethBigFloat, weiMultiplier)
+	weiBigInt, _ := weiBigFloat.Int(nil)
+
+	return weiBigInt
 }
 
 // ListBuyerPurchases gets all purchases for a buyer
 func (s *MarketplaceService) ListBuyerPurchases(ctx echo.Context, buyerID string, page, limit int) ([]model.PurchaseWithDetails, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 20
-	}
 	return s.marketplaceRepo.ListPurchasesByBuyer(ctx.Request().Context(), buyerID, page, limit)
 }

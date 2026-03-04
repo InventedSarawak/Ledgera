@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"math/big"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/inventedsarawak/ledgera/internal/model/user"
 	"github.com/inventedsarawak/ledgera/internal/repository"
 	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/validation"
 	"github.com/labstack/echo/v4"
 )
 
@@ -401,12 +401,8 @@ func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID s
 		}
 	}
 
-	// Calculate amount in Wei (18 decimals)
-	amountWei := new(big.Float).Mul(big.NewFloat(p.CarbonAmount), big.NewFloat(1e18))
-	amountBigInt, _ := amountWei.Int(nil)
-
-	// Call Blockchain Service
-	if err := s.blockchainService.MintProjectTokens(ctx.Request().Context(), projectID, amountBigInt); err != nil {
+	// Call Blockchain Service passing the unscaled CarbonAmount (it will create Token ID 0 and scale it by 1000)
+	if err := s.blockchainService.MintProjectTokens(ctx.Request().Context(), projectID, p.CarbonAmount); err != nil {
 		return err
 	}
 
@@ -417,7 +413,14 @@ func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID s
 
 	// We list the entire minted amount at 0.1 ETH per tonne of CO2
 	// This is a temporary hardcoded price as per user request
-	if _, err := s.marketplaceService.CreateListing(ctx, projectID, userID, p.CarbonAmount, 0.1); err != nil {
+	// Pass TokenID 0 for the initial supply listing.
+	req := validation.CreateListingRequest{
+		ProjectID: projectID,
+		TokenID:   0,
+		Amount:    p.CarbonAmount,
+		PriceETH:  0.1,
+	}
+	if _, err := s.marketplaceService.CreateListing(ctx, req, userID); err != nil {
 		// Log the error but don't fail the request completely since tokens are already minted
 		// Ideally, we should have a way to retry this or alert the user
 		return echo.NewHTTPError(http.StatusPartialContent, "tokens minted successfully, but failed to create marketplace listing").SetInternal(err)

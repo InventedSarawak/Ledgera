@@ -18,9 +18,10 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton = true }: ListingCardProps) {
-    const [buyAmount, setBuyAmount] = useState<number>(listing.amount)
+    const availableAmount = listing.scaledAmount / 1000
+    const [buyAmount, setBuyAmount] = useState<number>(availableAmount)
     const totalPrice = (buyAmount * listing.priceEth).toFixed(6)
-    const isValidAmount = buyAmount > 0 && buyAmount <= listing.amount
+    const isValidAmount = buyAmount > 0 && buyAmount <= availableAmount
 
     // Truncate description
     const shortDescription =
@@ -66,7 +67,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
                         <p className="text-xs text-muted-foreground">Available</p>
                         <p className="text-xl font-bold flex items-center gap-1">
                             <Leaf className="h-4 w-4 text-green-600" />
-                            {listing.amount.toLocaleString()}
+                            {availableAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })}
                         </p>
                         <p className="text-xs text-muted-foreground">Credits</p>
                     </div>
@@ -79,8 +80,16 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
 
                 {listing.tokenSymbol && (
                     <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">Token</p>
-                        <p className="font-mono text-sm font-semibold">{listing.tokenSymbol}</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs text-muted-foreground">Token</p>
+                                <p className="font-mono text-sm font-semibold">{listing.tokenSymbol}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs text-muted-foreground">Lot ID</p>
+                                <p className="font-mono text-sm font-semibold">#{listing.tokenId}</p>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -95,8 +104,8 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
                         <label className="text-sm text-muted-foreground whitespace-nowrap">Qty:</label>
                         <Input
                             type="number"
-                            min={1}
-                            max={listing.amount}
+                            min={0.001}
+                            max={availableAmount}
                             step="any"
                             value={buyAmount}
                             onChange={(e) => {
@@ -109,7 +118,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setBuyAmount(listing.amount)}
+                            onClick={() => setBuyAmount(availableAmount)}
                             disabled={isLoading}
                             className="text-xs">
                             Max

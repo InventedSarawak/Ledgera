@@ -53,8 +53,8 @@ run_contracts_tests() {
 
 main() {
   ensure_docker
+  run_contracts_tests
   run_backend_tests
-#   run_contracts_tests
   log "All requested test suites completed."
 }
 

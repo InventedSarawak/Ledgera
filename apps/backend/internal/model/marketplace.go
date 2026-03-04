@@ -2,16 +2,22 @@ package model
 
 import "time"
 
-// Marketplace represents a marketplace listing
+// Listing represents a marketplace listing (lot-based, ERC-1155)
 type Listing struct {
-	ID        string    `json:"id" db:"id"`
-	ProjectID string    `json:"projectId" db:"project_id"`
-	SellerID  string    `json:"sellerId" db:"seller_id"`
-	Amount    float64   `json:"amount" db:"amount"`
-	PriceETH  float64   `json:"priceEth" db:"price_eth"`
-	Active    bool      `json:"active" db:"active"`
-	CreatedAt time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
+	ID           string    `json:"id" db:"id"`
+	ProjectID    string    `json:"projectId" db:"project_id"`
+	SellerID     string    `json:"sellerId" db:"seller_id"`
+	TokenID      int       `json:"tokenId" db:"token_id"`
+	ScaledAmount int64     `json:"scaledAmount" db:"scaled_amount"`
+	PriceETH     float64   `json:"priceEth" db:"price_eth"`
+	Active       bool      `json:"active" db:"active"`
+	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
+	UpdatedAt    time.Time `json:"updatedAt" db:"updated_at"`
+}
+
+// DisplayAmount returns the human-readable credit amount (scaledAmount / 1000)
+func (l Listing) DisplayAmount() float64 {
+	return float64(l.ScaledAmount) / 1000.0
 }
 
 // ListingWithDetails includes project and seller information

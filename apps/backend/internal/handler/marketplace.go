@@ -29,8 +29,8 @@ func (h *MarketplaceHandler) CreateListing(c echo.Context) error {
 	return Handle(
 		h.Handler,
 		func(c echo.Context, req *validation.CreateListingRequest) (*model.Listing, error) {
-			userID := middleware.GetUserID(c)
-			return h.marketplaceService.CreateListing(c, req.ProjectID, userID, req.Amount, req.PriceETH)
+			sellerID := middleware.GetUserID(c)
+			return h.marketplaceService.CreateListing(c, *req, sellerID)
 		},
 		http.StatusCreated,
 		&validation.CreateListingRequest{},
@@ -73,8 +73,8 @@ func (h *MarketplaceHandler) BuyListing(c echo.Context) error {
 	return HandleNoContent(
 		h.Handler,
 		func(c echo.Context, req *validation.BuyListingRequest) error {
-			userID := middleware.GetUserID(c)
-			return h.marketplaceService.BuyListing(c, req.ListingID, userID, req.TxHash, req.BuyerWallet, req.Amount)
+			buyerID := middleware.GetUserID(c)
+			return h.marketplaceService.BuyListing(c, *req, buyerID)
 		},
 		http.StatusOK,
 		&validation.BuyListingRequest{},

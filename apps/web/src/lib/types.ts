@@ -22,7 +22,8 @@ export interface MarketplaceListing {
     id: string
     projectId: string
     sellerId: string
-    amount: number
+    tokenId: number
+    scaledAmount: number
     priceEth: number
     active: boolean
     createdAt: string
@@ -59,7 +60,8 @@ export interface Purchase {
     listingId: string
     projectId: string
     sellerId: string
-    amount: number
+    tokenId: number
+    scaledAmount: number
     priceEth: number
     totalEth: number
     txHash: string

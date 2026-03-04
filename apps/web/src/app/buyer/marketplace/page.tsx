@@ -40,8 +40,8 @@ export default function BuyerMarketplacePage() {
     })
 
     const confirmPurchaseMutation = useMutation({
-        mutationFn: ({ listingId, txHash, amount, wallet }: { listingId: string; txHash: string; amount: number; wallet: string }) =>
-            buyMarketplaceListing(listingId, txHash, wallet, amount),
+        mutationFn: ({ listingId, txHash, amount, wallet, sourceLotId }: { listingId: string; txHash: string; amount: number; wallet: string; sourceLotId?: number }) =>
+            buyMarketplaceListing(listingId, txHash, wallet, amount, sourceLotId),
         onSuccess: () => {
             toast({
                 title: 'Purchase Successful!',
@@ -74,10 +74,11 @@ export default function BuyerMarketplacePage() {
                 return
             }
 
-            if (buyAmount <= 0 || buyAmount > listing.amount) {
+            const availableAmount = listing.scaledAmount / 1000
+            if (buyAmount <= 0 || buyAmount > availableAmount) {
                 toast({
                     title: 'Invalid Amount',
-                    description: `Please enter an amount between 1 and ${listing.amount}`,
+                    description: `Please enter an amount between 0.001 and ${availableAmount}`,
                     variant: 'destructive'
                 })
                 return
@@ -123,6 +124,7 @@ export default function BuyerMarketplacePage() {
                     txHash: receipt.hash,
                     amount: buyAmount,
                     wallet: walletAddress
+                    // Note: sourceLotId is sent as listing.tokenId in a further update to the API client or here if added. Wait, the API client takes `sourceLotId?: number`. Let's pass it!
                 })
             } catch (error) {
                 console.error('Buy failed:', error)

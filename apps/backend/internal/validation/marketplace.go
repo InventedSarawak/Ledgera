@@ -10,6 +10,7 @@ import (
 
 type CreateListingRequest struct {
 	ProjectID string  `json:"projectId" validate:"required,uuid"`
+	TokenID   int     `json:"tokenId" validate:"required,min=0"`
 	Amount    float64 `json:"amount" validate:"required,gt=0"`
 	PriceETH  float64 `json:"priceEth" validate:"required,gt=0"`
 }
@@ -24,6 +25,7 @@ type BuyListingRequest struct {
 	TxHash      string  `json:"txHash" validate:"required"`
 	BuyerWallet string  `json:"buyerWallet" validate:"required"`
 	Amount      float64 `json:"amount" validate:"required,gt=0"`
+	SourceLotID *int    `json:"sourceLotId" validate:"omitempty,min=0"`
 }
 
 func (r *BuyListingRequest) Validate() error {

@@ -17,21 +17,22 @@ func NewMarketplaceRepository(db *database.Database) *MarketplaceRepository {
 	return &MarketplaceRepository{db: db}
 }
 
-// CreateListing creates a new marketplace listing
-func (r *MarketplaceRepository) CreateListing(ctx context.Context, projectID, sellerID string, amount, priceETH float64) (*model.Listing, error) {
+// CreateListing creates a new marketplace listing (lot-based)
+func (r *MarketplaceRepository) CreateListing(ctx context.Context, projectID, sellerID string, tokenID int, scaledAmount int64, priceETH float64) (*model.Listing, error) {
 	query := `
-		INSERT INTO marketplace_listings (id, project_id, seller_id, amount, price_eth, active)
-		VALUES ($1, $2, $3, $4, $5, true)
-		RETURNING id, project_id, seller_id, amount, price_eth, active, created_at, updated_at
+		INSERT INTO marketplace_listings (id, project_id, seller_id, token_id, scaled_amount, price_eth, active)
+		VALUES ($1, $2, $3, $4, $5, $6, true)
+		RETURNING id, project_id, seller_id, token_id, scaled_amount, price_eth, active, created_at, updated_at
 	`
 
 	id := uuid.New().String()
 	var listing model.Listing
-	err := r.db.Pool.QueryRow(ctx, query, id, projectID, sellerID, amount, priceETH).Scan(
+	err := r.db.Pool.QueryRow(ctx, query, id, projectID, sellerID, tokenID, scaledAmount, priceETH).Scan(
 		&listing.ID,
 		&listing.ProjectID,
 		&listing.SellerID,
-		&listing.Amount,
+		&listing.TokenID,
+		&listing.ScaledAmount,
 		&listing.PriceETH,
 		&listing.Active,
 		&listing.CreatedAt,
@@ -47,7 +48,7 @@ func (r *MarketplaceRepository) CreateListing(ctx context.Context, projectID, se
 // FindListingByID gets a listing by ID
 func (r *MarketplaceRepository) FindListingByID(ctx context.Context, id string) (*model.Listing, error) {
 	query := `
-		SELECT id, project_id, seller_id, amount, price_eth, active, created_at, updated_at
+		SELECT id, project_id, seller_id, token_id, scaled_amount, price_eth, active, created_at, updated_at
 		FROM marketplace_listings
 		WHERE id = $1
 	`
@@ -57,7 +58,8 @@ func (r *MarketplaceRepository) FindListingByID(ctx context.Context, id string) 
 		&listing.ID,
 		&listing.ProjectID,
 		&listing.SellerID,
-		&listing.Amount,
+		&listing.TokenID,
+		&listing.ScaledAmount,
 		&listing.PriceETH,
 		&listing.Active,
 		&listing.CreatedAt,
@@ -102,7 +104,7 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 	// Data query
 	dataQuery := `
 		SELECT 
-			ml.id, ml.project_id, ml.seller_id, ml.amount, ml.price_eth, ml.active, ml.created_at, ml.updated_at,
+			ml.id, ml.project_id, ml.seller_id, ml.token_id, ml.scaled_amount, ml.price_eth, ml.active, ml.created_at, ml.updated_at,
 			p.title, p.description, p.image_url, u.email, p.contract_address, p.token_symbol, u.wallet_address
 		` + baseQuery + `
 		ORDER BY ml.created_at DESC
@@ -123,7 +125,8 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 			&listing.ID,
 			&listing.ProjectID,
 			&listing.SellerID,
-			&listing.Amount,
+			&listing.TokenID,
+			&listing.ScaledAmount,
 			&listing.PriceETH,
 			&listing.Active,
 			&listing.CreatedAt,
@@ -161,15 +164,15 @@ func (r *MarketplaceRepository) CancelListing(ctx context.Context, id string) er
 	return nil
 }
 
-// ReduceListingAmount reduces the available amount on a listing after a partial purchase
-func (r *MarketplaceRepository) ReduceListingAmount(ctx context.Context, id string, reduceBy float64) error {
+// ReduceListingAmount reduces the available scaled_amount on a listing after a partial purchase
+func (r *MarketplaceRepository) ReduceListingAmount(ctx context.Context, id string, reduceByScaled int64) error {
 	query := `
 		UPDATE marketplace_listings
-		SET amount = amount - $2, updated_at = NOW()
-		WHERE id = $1 AND amount >= $2
+		SET scaled_amount = scaled_amount - $2, updated_at = NOW()
+		WHERE id = $1 AND scaled_amount >= $2
 	`
 
-	cmd, err := r.db.Pool.Exec(ctx, query, id, reduceBy)
+	cmd, err := r.db.Pool.Exec(ctx, query, id, reduceByScaled)
 	if err != nil {
 		return fmt.Errorf("failed to reduce listing amount: %w", err)
 	}
@@ -185,15 +188,15 @@ func (r *MarketplaceRepository) CompleteListing(ctx context.Context, id string) 
 	return r.CancelListing(ctx, id)
 }
 
-// GetActiveListedAmount returns the total amount currently listed by a seller for a specific project
-func (r *MarketplaceRepository) GetActiveListedAmount(ctx context.Context, sellerID, projectID string) (float64, error) {
+// GetActiveListedAmount (Scaled) returns the total scaled amount currently listed by a seller for a specific project
+func (r *MarketplaceRepository) GetActiveListedAmountScaled(ctx context.Context, sellerID, projectID string) (int64, error) {
 	query := `
-		SELECT COALESCE(SUM(amount), 0)
+		SELECT COALESCE(SUM(scaled_amount), 0)
 		FROM marketplace_listings
 		WHERE seller_id = $1 AND project_id = $2 AND active = true
 	`
 
-	var total float64
+	var total int64
 	err := r.db.Pool.QueryRow(ctx, query, sellerID, projectID).Scan(&total)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get active listed amount: %w", err)
@@ -202,15 +205,15 @@ func (r *MarketplaceRepository) GetActiveListedAmount(ctx context.Context, selle
 	return total, nil
 }
 
-// GetTotalPurchasedAmount returns the total amount a buyer has purchased for a specific project
-func (r *MarketplaceRepository) GetTotalPurchasedAmount(ctx context.Context, buyerID, projectID string) (float64, error) {
+// GetTotalPurchasedAmountScaled returns the total scaled amount a buyer has purchased for a specific project
+func (r *MarketplaceRepository) GetTotalPurchasedAmountScaled(ctx context.Context, buyerID, projectID string) (int64, error) {
 	query := `
-		SELECT COALESCE(SUM(amount), 0)
+		SELECT COALESCE(SUM(scaled_amount), 0)
 		FROM purchases
 		WHERE buyer_id = $1 AND project_id = $2
 	`
 
-	var total float64
+	var total int64
 	err := r.db.Pool.QueryRow(ctx, query, buyerID, projectID).Scan(&total)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get total purchased amount: %w", err)
@@ -222,8 +225,8 @@ func (r *MarketplaceRepository) GetTotalPurchasedAmount(ctx context.Context, buy
 // RecordPurchase inserts a purchase record
 func (r *MarketplaceRepository) RecordPurchase(ctx context.Context, purchase model.Purchase) (*model.Purchase, error) {
 	query := `
-		INSERT INTO purchases (buyer_id, listing_id, project_id, seller_id, amount, price_eth, total_eth, tx_hash)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO purchases (buyer_id, listing_id, project_id, seller_id, token_id, scaled_amount, price_eth, total_eth, tx_hash)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at
 	`
 
@@ -232,7 +235,8 @@ func (r *MarketplaceRepository) RecordPurchase(ctx context.Context, purchase mod
 		purchase.ListingID,
 		purchase.ProjectID,
 		purchase.SellerID,
-		purchase.Amount,
+		purchase.TokenID,
+		purchase.ScaledAmount,
 		purchase.PriceETH,
 		purchase.TotalETH,
 		purchase.TxHash,
@@ -261,7 +265,7 @@ func (r *MarketplaceRepository) ListPurchasesByBuyer(ctx context.Context, buyerI
 	query := `
 		SELECT 
 			pu.id, pu.buyer_id, pu.listing_id, pu.project_id, pu.seller_id,
-			pu.amount, pu.price_eth, pu.total_eth, pu.tx_hash, pu.created_at,
+			pu.token_id, pu.scaled_amount, pu.price_eth, pu.total_eth, pu.tx_hash, pu.created_at,
 			p.title, p.token_symbol, p.contract_address
 		FROM purchases pu
 		INNER JOIN projects p ON pu.project_id = p.id
@@ -281,7 +285,7 @@ func (r *MarketplaceRepository) ListPurchasesByBuyer(ctx context.Context, buyerI
 		var p model.PurchaseWithDetails
 		err := rows.Scan(
 			&p.ID, &p.BuyerID, &p.ListingID, &p.ProjectID, &p.SellerID,
-			&p.Amount, &p.PriceETH, &p.TotalETH, &p.TxHash, &p.CreatedAt,
+			&p.TokenID, &p.ScaledAmount, &p.PriceETH, &p.TotalETH, &p.TxHash, &p.CreatedAt,
 			&p.ProjectTitle, &p.TokenSymbol, &p.TokenAddress,
 		)
 		if err != nil {
