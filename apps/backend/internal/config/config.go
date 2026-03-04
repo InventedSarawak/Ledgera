@@ -62,7 +62,6 @@ type BlockchainConfig struct {
 	RpcUrl             string `koanf:"rpc_url" validate:"required,url"`
 	ChainID            int    `koanf:"chain_id" validate:"required"`
 	RegistryAddress    string `koanf:"registry_address" validate:"required"`
-	MarketplaceAddress string `koanf:"marketplace_address" validate:"required"`
 	AdminPrivateKey    string `koanf:"admin_private_key" validate:"required"`
 }
 
