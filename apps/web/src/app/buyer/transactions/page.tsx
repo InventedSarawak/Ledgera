@@ -87,7 +87,7 @@ export default function BuyerTransactionsPage() {
                                                     Amount:{' '}
                                                 </span>
                                                 <span className="font-semibold">
-                                                    {tx.amount.toLocaleString()} Credits
+                                                    {(tx.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} Credits
                                                 </span>
                                             </div>
 

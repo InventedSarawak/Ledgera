@@ -242,7 +242,9 @@ func (c *Client) PurchaseLot(ctx context.Context, tokenAddress string, sourceLot
 	found := false
 	var newLotId *big.Int
 
-	// Parse the CertificateGenerated event to get the newLotId
+	// ParseCertificateGenerated internally validates the topic hash from the ABI,
+	// so no hardcoded event signature is needed — it auto-updates on binding regeneration.
+	var parseErr error
 	for _, log := range receipt.Logs {
 		event, err := tokenContract.ParseCertificateGenerated(*log)
 		if err == nil {
@@ -250,10 +252,11 @@ func (c *Client) PurchaseLot(ctx context.Context, tokenAddress string, sourceLot
 			found = true
 			break
 		}
+		parseErr = err
 	}
 
 	if !found {
-		return nil, fmt.Errorf("failed to parse new lot ID from CertificateGenerated event")
+		return nil, fmt.Errorf("failed to parse new lot ID from CertificateGenerated event (logs: %d, last err: %v)", len(receipt.Logs), parseErr)
 	}
 
 	return newLotId, nil

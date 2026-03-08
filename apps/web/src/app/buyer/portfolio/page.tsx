@@ -302,7 +302,7 @@ export default function BuyerPortfolioPage() {
                             <div className="space-y-4">
                                 {holdings.map((holding) => (
                                     <div
-                                        key={holding.projectId}
+                                        key={`${holding.projectId}-${holding.tokenId}`}
                                         className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
                                         <div className="flex-1 space-y-2">
                                             <div className="flex items-center gap-2">

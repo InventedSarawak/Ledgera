@@ -108,13 +108,25 @@ export default function BuyerMarketplacePage() {
                 const totalPriceEth = buyAmount * listing.priceEth
                 const totalPriceWei = parseEther(totalPriceEth.toFixed(18))
 
+                const provider = new BrowserProvider(window.ethereum!)
+                const signer = await provider.getSigner()
+
+                // Prevent transaction if insufficient balance
+                const balance = await provider.getBalance(walletAddress)
+                if (balance < totalPriceWei) {
+                   toast({
+                       title: 'Insufficient Balance',
+                       description: `You need at least ${formatEther(totalPriceWei)} ETH to complete this purchase`,
+                       variant: 'destructive'
+                   })
+                   setBuyingId(null)
+                   return
+                }
+
                 toast({
                     title: 'Confirm in MetaMask',
                     description: `Sending ${formatEther(totalPriceWei)} ETH to seller...`
                 })
-
-                const provider = new BrowserProvider(window.ethereum!)
-                const signer = await provider.getSigner()
 
                 const tx = await signer.sendTransaction({
                     to: listing.sellerWalletAddress,
@@ -135,7 +147,6 @@ export default function BuyerMarketplacePage() {
                     txHash: receipt.hash,
                     amount: buyAmount,
                     wallet: walletAddress
-                    // Note: sourceLotId is sent as listing.tokenId in a further update to the API client or here if added. Wait, the API client takes `sourceLotId?: number`. Let's pass it!
                 })
             } catch (error) {
                 console.error('Buy failed:', error)

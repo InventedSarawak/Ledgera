@@ -35,6 +35,7 @@ export default function SupplierMarketplacePage() {
     const [selectedListing, setSelectedListing] = useState<ListingWithDetails | null>(null)
     const [amount, setAmount] = useState('')
     const [priceEth, setPriceEth] = useState('')
+    const [tokenId, setTokenId] = useState('0')
     const [copied, setCopied] = useState(false)
 
     // Fetch deployed projects (only these can be listed)
@@ -97,7 +98,7 @@ export default function SupplierMarketplacePage() {
     }
 
     const handleCreateListing = () => {
-        if (!selectedProject || !amount || !priceEth) {
+        if (!selectedProject || !amount || !priceEth || !tokenId) {
             toast({
                 title: 'Missing Information',
                 description: 'Please fill in all fields',
@@ -108,6 +109,7 @@ export default function SupplierMarketplacePage() {
 
         createListingMutation.mutate({
             projectId: selectedProject.id,
+            tokenId: parseInt(tokenId, 10),
             amount: parseFloat(amount),
             priceEth: parseFloat(priceEth)
         })
@@ -179,7 +181,7 @@ export default function SupplierMarketplacePage() {
                                                 <div>
                                                     <CardTitle className="text-lg">{listing.projectTitle}</CardTitle>
                                                     <CardDescription>
-                                                        {listing.amount} credits @ {listing.priceEth} ETH
+                                                        {(listing.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} credits @ {listing.priceEth} ETH
                                                     </CardDescription>
                                                 </div>
                                                 <Badge variant={listing.active ? 'default' : 'secondary'}>
@@ -192,7 +194,7 @@ export default function SupplierMarketplacePage() {
                                                 <div>
                                                     <p className="text-muted-foreground">Total Value</p>
                                                     <p className="font-bold text-lg">
-                                                        {(listing.amount * listing.priceEth).toFixed(4)} ETH
+                                                        {((listing.scaledAmount / 1000) * listing.priceEth).toFixed(4)} ETH
                                                     </p>
                                                 </div>
                                                 <div>
@@ -312,6 +314,19 @@ export default function SupplierMarketplacePage() {
                             )}
 
                             <div>
+                                <Label htmlFor="tokenId">Lot / Token ID</Label>
+                                <Input
+                                    id="tokenId"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    placeholder="0"
+                                    value={tokenId}
+                                    onChange={(e) => setTokenId(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
                                 <Label htmlFor="amount">Amount of Carbon Credits</Label>
                                 <Input
                                     id="amount"
@@ -374,7 +389,7 @@ export default function SupplierMarketplacePage() {
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <p className="text-xs text-muted-foreground">Credits Listed</p>
                                                 <p className="text-xl font-bold">
-                                                    {selectedListing.amount.toLocaleString()}
+                                                    {(selectedListing.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })}
                                                 </p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
@@ -384,7 +399,7 @@ export default function SupplierMarketplacePage() {
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <p className="text-xs text-muted-foreground">Total Value</p>
                                                 <p className="text-xl font-bold">
-                                                    {(selectedListing.amount * selectedListing.priceEth).toFixed(4)} ETH
+                                                    {((selectedListing.scaledAmount / 1000) * selectedListing.priceEth).toFixed(4)} ETH
                                                 </p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">

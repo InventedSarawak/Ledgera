@@ -91,7 +91,7 @@ contract AssetToken is ERC1155, Ownable {
         address buyer
     ) external onlyOwner returns (uint256 newLotId) {
         LotMetadata storage source = lotDetails[sourceLotId];
-        require(source.isAbleToBuy, 'Lot not for sale');
+        // require(source.isAbleToBuy, 'Lot not for sale'); // Removed: Handled by off-chain backend
         require(source.amount >= scaledAmount, 'Insufficient lot balance');
         require(
             balanceOf(source.currentOwner, sourceLotId) >= scaledAmount,

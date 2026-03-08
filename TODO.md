@@ -19,3 +19,10 @@
 - [ ] Add pagination to the list of projects.
 - [ ] Implement search functionality for projects.
 - [ ] Add dashboard for the buyer.
+
+## Evaluation Todos
+
+- [ ] Add marketplace on Landing page.
+- [ ] Complete and fix the marketplace logic.
+- [ ] Add Map selection functionality to enter coordinates for the project location.
+- [ ] Add OCR to extract text from images uploaded for projects, and confirm geniune project details.

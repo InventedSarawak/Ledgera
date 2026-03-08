@@ -56,22 +56,59 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "project is not deployed")
 	}
 
-	if proj.SupplierID != sellerID {
-		return nil, fmt.Errorf("only the project supplier can create initial listings")
+	if req.TokenID == nil {
+		zero := 0
+		req.TokenID = &zero
+	}
+
+	var maxAvailableToList int64
+
+	if *req.TokenID == 0 {
+		// Initial listing from supplier
+		if proj.SupplierID != sellerID {
+			return nil, fmt.Errorf("only the project supplier can create initial listings (Token ID 0)")
+		}
+		maxAvailableToList = int64(math.Round(proj.CarbonAmount * 1000))
+	} else {
+		// Secondary market resale
+		seller, err := s.userRepo.FindByClerkID(ctx.Request().Context(), sellerID)
+		if err != nil || seller == nil {
+			return nil, fmt.Errorf("failed to fetch user details")
+		}
+		if seller.WalletAddress == nil {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "connect your wallet to list credits")
+		}
+		if s.server.Blockchain == nil {
+			return nil, fmt.Errorf("blockchain client not initialized")
+		}
+		balance, err := s.server.Blockchain.GetTokenBalance(ctx.Request().Context(), *proj.ContractAddress, *seller.WalletAddress, big.NewInt(int64(*req.TokenID)))
+		if err != nil {
+			return nil, fmt.Errorf("failed to check token balance: %w", err)
+		}
+
+		maxAvailableToList = balance.Int64()
+		if maxAvailableToList <= 0 {
+			return nil, fmt.Errorf("you do not own any credits for this token lot")
+		}
+
+		// Also notify the smart contract that this lot is for sale? No, wait:
+		// We list on-chain when the buyer makes a purchase. But Ledgera MVP only required off-chain listing!
+		// Actually, in `AssetToken.sol`, `purchaseLot` requires `source.isAbleToBuy == true`.
+		// The smart contract has a `listForSale(lotId, pricePerUnit)` function!
 	}
 
 	// Calculate scaled amounts (1 credit = 1000 units)
 	scaledAmountToAdd := int64(math.Round(req.Amount * 1000))
-	totalProjectCarbonScaled := int64(math.Round(proj.CarbonAmount * 1000))
 
-	// 2. Validate that the supplier has enough unlisted tokens
-	activeListedScaled, err := s.marketplaceRepo.GetActiveListedAmountScaled(ctx.Request().Context(), sellerID, proj.ID.String())
+	// 2. Validate that the seller has enough unlisted tokens
+	activeListedScaled, err := s.marketplaceRepo.GetActiveListedAmountScaledForToken(ctx.Request().Context(), sellerID, proj.ID.String(), *req.TokenID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check active listings: %w", err)
 	}
 
-	if activeListedScaled+scaledAmountToAdd > totalProjectCarbonScaled {
-		return nil, fmt.Errorf("cannot list more than the total project carbon amount (available to list: %f)", float64(totalProjectCarbonScaled-activeListedScaled)/1000.0)
+	if activeListedScaled+scaledAmountToAdd > maxAvailableToList {
+		available := float64(maxAvailableToList-activeListedScaled) / 1000.0
+		return nil, fmt.Errorf("cannot list more than your available token balance (available: %f)", available)
 	}
 
 	// 3. Create the listing in the database

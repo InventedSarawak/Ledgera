@@ -21,14 +21,14 @@ export function BuyerDashboard() {
     const purchases: PurchaseWithDetails[] = data?.data ?? []
 
     // Calculate real stats
-    const totalCredits = purchases.reduce((acc, p) => acc + p.amount, 0)
+    const totalCredits = purchases.reduce((acc, p) => acc + (p.scaledAmount / 1000), 0)
     const totalSpentEth = purchases.reduce((acc, p) => acc + p.totalEth, 0)
     const uniqueProjects = new Set(purchases.map((p) => p.projectId)).size
 
     const stats = [
         {
             title: 'Total Credits Owned',
-            value: isLoading ? '...' : totalCredits.toLocaleString(),
+            value: isLoading ? '...' : totalCredits.toLocaleString(undefined, { maximumFractionDigits: 3 }),
             description: 'Carbon credits in portfolio',
             icon: Wallet,
             iconColor: 'text-blue-600',
@@ -164,7 +164,7 @@ export function BuyerDashboard() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-semibold">{tx.amount} Credits</p>
+                                        <p className="font-semibold">{(tx.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} Credits</p>
                                         <p className="text-sm text-muted-foreground">{tx.totalEth.toFixed(6)} ETH</p>
                                     </div>
                                 </div>

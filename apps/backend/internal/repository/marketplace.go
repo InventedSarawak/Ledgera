@@ -188,7 +188,7 @@ func (r *MarketplaceRepository) CompleteListing(ctx context.Context, id string) 
 	return r.CancelListing(ctx, id)
 }
 
-// GetActiveListedAmount (Scaled) returns the total scaled amount currently listed by a seller for a specific project
+// GetActiveListedAmountScaled (Scaled) returns the total scaled amount currently listed by a seller for a specific project (all tokens)
 func (r *MarketplaceRepository) GetActiveListedAmountScaled(ctx context.Context, sellerID, projectID string) (int64, error) {
 	query := `
 		SELECT COALESCE(SUM(scaled_amount), 0)
@@ -200,6 +200,23 @@ func (r *MarketplaceRepository) GetActiveListedAmountScaled(ctx context.Context,
 	err := r.db.Pool.QueryRow(ctx, query, sellerID, projectID).Scan(&total)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get active listed amount: %w", err)
+	}
+
+	return total, nil
+}
+
+// GetActiveListedAmountScaledForToken (Scaled) returns the total scaled amount currently listed by a seller for a specific token
+func (r *MarketplaceRepository) GetActiveListedAmountScaledForToken(ctx context.Context, sellerID, projectID string, tokenID int) (int64, error) {
+	query := `
+		SELECT COALESCE(SUM(scaled_amount), 0)
+		FROM marketplace_listings
+		WHERE seller_id = $1 AND project_id = $2 AND token_id = $3 AND active = true
+	`
+
+	var total int64
+	err := r.db.Pool.QueryRow(ctx, query, sellerID, projectID, tokenID).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get active listed amount for token: %w", err)
 	}
 
 	return total, nil
