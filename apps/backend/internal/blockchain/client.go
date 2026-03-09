@@ -277,3 +277,32 @@ func (c *Client) GetTokenBalance(ctx context.Context, tokenAddress string, walle
 
 	return balance, nil
 }
+
+// RetireCredits calls the retireCredits method to permanently burn tokens from a lot
+func (c *Client) RetireCredits(ctx context.Context, tokenAddress string, lotId *big.Int, scaledAmount *big.Int, ownerAddress string, reason string) (string, error) {
+	auth, err := c.GetTransactOpts(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get transaction options: %w", err)
+	}
+
+	tokenContract, err := token.NewToken(common.HexToAddress(tokenAddress), c.Eth)
+	if err != nil {
+		return "", fmt.Errorf("failed to load token contract: %w", err)
+	}
+
+	tx, err := tokenContract.RetireCredits(auth, lotId, scaledAmount, common.HexToAddress(ownerAddress), reason)
+	if err != nil {
+		return "", fmt.Errorf("failed to retire credits: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(ctx, c.Eth, tx)
+	if err != nil {
+		return "", fmt.Errorf("failed to wait for transaction: %w", err)
+	}
+
+	if receipt.Status == 0 {
+		return "", fmt.Errorf("retire credits transaction failed")
+	}
+
+	return receipt.TxHash.Hex(), nil
+}

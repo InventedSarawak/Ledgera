@@ -73,3 +73,20 @@ export interface PurchaseWithDetails extends Purchase {
     tokenSymbol: string | null
     tokenAddress: string | null
 }
+
+export interface Certificate {
+    id: string
+    ownerId: string
+    projectId: string
+    tokenId: number
+    txHash: string
+    amountRetired: number
+    retirementReason: string | null
+    createdAt: string
+}
+
+export interface CertificateWithDetails extends Certificate {
+    projectTitle: string
+    tokenSymbol: string | null
+    tokenAddress: string | null
+}

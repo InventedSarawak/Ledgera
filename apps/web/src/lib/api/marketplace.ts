@@ -92,3 +92,28 @@ export async function getBuyerPurchases(params?: { page?: number; limit?: number
     const total = parseInt(response.headers['x-total-count'] || '0')
     return { data: response.data, total }
 }
+
+/**
+ * Retire (burn) carbon credits
+ */
+export async function retireCredits(data: {
+    projectId: string
+    tokenId: number
+    amount: number
+    reason?: string
+}): Promise<import('@/lib/types').Certificate> {
+    const response = await axiosInstance.post('/marketplace/retire', data)
+    return response.data
+}
+
+/**
+ * Get buyer's retirement history
+ */
+export async function listRetirements(params?: { page?: number; limit?: number }): Promise<{
+    data: import('@/lib/types').CertificateWithDetails[]
+    total: number
+}> {
+    const response = await axiosInstance.get('/marketplace/retirements', { params })
+    const total = parseInt(response.headers['x-total-count'] || '0')
+    return { data: response.data, total }
+}

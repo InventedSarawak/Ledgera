@@ -86,3 +86,19 @@ func (r *DeployProjectTokenRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(r)
 }
+
+// ============================================================================
+// Retire Credits Validation
+// ============================================================================
+
+type RetireCreditsRequest struct {
+	ProjectID string  `json:"projectId" validate:"required,uuid"`
+	TokenID   int     `json:"tokenId" validate:"min=0"`
+	Amount    float64 `json:"amount" validate:"required,gt=0"`
+	Reason    string  `json:"reason" validate:"omitempty,max=500"`
+}
+
+func (r *RetireCreditsRequest) Validate() error {
+	validate := validator.New()
+	return validate.Struct(r)
+}

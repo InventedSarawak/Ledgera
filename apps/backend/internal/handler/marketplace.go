@@ -127,3 +127,36 @@ func (h *MarketplaceHandler) GetBuyerPurchases(c echo.Context) error {
 		&validation.ListMarketplaceRequest{},
 	)(c)
 }
+
+// RetireCredits handles retiring (burning) carbon credits
+func (h *MarketplaceHandler) RetireCredits(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.RetireCreditsRequest) (*model.Certificate, error) {
+			buyerID := middleware.GetUserID(c)
+			return h.marketplaceService.RetireCredits(c, *req, buyerID)
+		},
+		http.StatusCreated,
+		&validation.RetireCreditsRequest{},
+	)(c)
+}
+
+// ListRetirements returns authenticated buyer's retirement history
+func (h *MarketplaceHandler) ListRetirements(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ListMarketplaceRequest) ([]model.CertificateWithDetails, error) {
+			userID := middleware.GetUserID(c)
+			certs, total, err := h.marketplaceService.ListRetirements(c, userID, req.Page, req.Limit)
+			if err != nil {
+				return nil, err
+			}
+			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
+			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
+			return certs, nil
+		},
+		http.StatusOK,
+		&validation.ListMarketplaceRequest{},
+	)(c)
+}

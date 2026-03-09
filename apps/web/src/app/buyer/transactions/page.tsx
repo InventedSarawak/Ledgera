@@ -4,15 +4,17 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, ExternalLink, ChevronLeft, ChevronRight, History } from 'lucide-react'
+import { Loader2, ExternalLink, ChevronLeft, ChevronRight, History, Award } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { getBuyerPurchases } from '@/lib/api/marketplace'
 import { PurchaseWithDetails } from '@/lib/types'
 import { useState } from 'react'
+import { CertificateDialog } from '@/components/marketplace/CertificateDialog'
 
 export default function BuyerTransactionsPage() {
     const [page, setPage] = useState(1)
     const limit = 20
+    const [certPurchase, setCertPurchase] = useState<PurchaseWithDetails | null>(null)
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['buyer-transactions', page, limit],
@@ -54,20 +56,21 @@ export default function BuyerTransactionsPage() {
                         ) : (
                             <>
                                 {/* Table header */}
-                                <div className="hidden md:grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr_0.5fr] gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
+                                <div className="hidden md:grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr_0.5fr_0.5fr] gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
                                     <span>Project</span>
                                     <span>Amount</span>
                                     <span>Price/Credit</span>
                                     <span>Total</span>
                                     <span>Tx Hash</span>
                                     <span>Date</span>
+                                    <span>Certificate</span>
                                 </div>
 
                                 <div className="divide-y">
                                     {purchases.map((tx) => (
                                         <div
                                             key={tx.id}
-                                            className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr_0.5fr] gap-2 md:gap-4 px-4 py-4 items-center hover:bg-muted/50 rounded-lg">
+                                            className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr_0.5fr_0.5fr] gap-2 md:gap-4 px-4 py-4 items-center hover:bg-muted/50 rounded-lg">
                                             {/* Project */}
                                             <div className="flex items-center gap-2">
                                                 <Badge>Buy</Badge>
@@ -122,6 +125,18 @@ export default function BuyerTransactionsPage() {
                                             <div className="text-sm text-muted-foreground">
                                                 {new Date(tx.createdAt).toLocaleDateString()}
                                             </div>
+
+                                            {/* Certificate */}
+                                            <div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="gap-1 text-xs"
+                                                    onClick={() => setCertPurchase(tx)}>
+                                                    <Award className="h-3 w-3" />
+                                                    View
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -153,6 +168,12 @@ export default function BuyerTransactionsPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <CertificateDialog
+                open={!!certPurchase}
+                onOpenChange={(open) => !open && setCertPurchase(null)}
+                purchase={certPurchase}
+            />
         </DashboardLayout>
     )
 }

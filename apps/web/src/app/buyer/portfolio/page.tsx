@@ -14,9 +14,9 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog'
-import { Leaf, DollarSign, Package, Loader2, ShoppingBag, Tag, Wallet, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Leaf, DollarSign, Package, Loader2, ShoppingBag, Tag, Wallet, AlertTriangle, ExternalLink, Award } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBuyerPurchases, createMarketplaceListing, listMarketplaceListings } from '@/lib/api/marketplace'
+import { getBuyerPurchases, createMarketplaceListing, listMarketplaceListings, listRetirements } from '@/lib/api/marketplace'
 import { PurchaseWithDetails } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/hooks/use-wallet'
@@ -32,6 +32,7 @@ interface Holding {
     tokenId: number
     totalAmount: number
     listedAmount: number
+    retiredAmount: number
     availableAmount: number
     totalSpentEth: number
     purchaseCount: number
@@ -59,6 +60,12 @@ export default function BuyerPortfolioPage() {
     const { data: listingsData } = useQuery({
         queryKey: ['marketplace-listings-all'],
         queryFn: () => listMarketplaceListings({ limit: 100 })
+    })
+
+    // Fetch user's retirements to compute already-retired amounts
+    const { data: retirementsData } = useQuery({
+        queryKey: ['buyer-retirements-all'],
+        queryFn: () => listRetirements({ limit: 100 })
     })
 
     const createListingMutation = useMutation({
@@ -133,6 +140,7 @@ export default function BuyerPortfolioPage() {
                 tokenId: p.tokenId,
                 totalAmount: unscaledAmount,
                 listedAmount: 0,
+                retiredAmount: 0,
                 availableAmount: 0,
                 totalSpentEth: p.totalEth,
                 purchaseCount: 1,
@@ -141,11 +149,23 @@ export default function BuyerPortfolioPage() {
         }
     }
 
-    // Apply listed amounts
+    // Compute retired amounts per lot for the current user
+    const retiredByLot = useMemo(() => {
+        const map = new Map<string, number>()
+        if (!retirementsData?.data) return map
+        for (const cert of retirementsData.data) {
+            const key = `${cert.projectId}-${cert.tokenId}`
+            map.set(key, (map.get(key) || 0) + cert.amountRetired)
+        }
+        return map
+    }, [retirementsData])
+
+    // Apply listed + retired amounts
     for (const [, holding] of projectMap) {
         const key = `${holding.projectId}-${holding.tokenId}`
         holding.listedAmount = listedByProject.get(key) || 0
-        holding.availableAmount = Math.max(0, holding.totalAmount - holding.listedAmount)
+        holding.retiredAmount = retiredByLot.get(key) || 0
+        holding.availableAmount = Math.max(0, holding.totalAmount - holding.listedAmount - holding.retiredAmount)
     }
 
     const holdings = Array.from(projectMap.values())
@@ -346,14 +366,32 @@ export default function BuyerPortfolioPage() {
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">Total Invested</p>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => handleOpenSellDialog(holding)}
-                                                disabled={holding.availableAmount <= 0}
-                                                className="gap-1">
-                                                <Tag className="h-3 w-3" />
-                                                {holding.availableAmount <= 0 ? 'All Listed' : 'Sell Credits'}
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        // Find the most recent purchase for this holding
+                                                        const match = purchases.find(
+                                                            (p) =>
+                                                                p.projectId === holding.projectId &&
+                                                                p.tokenId === holding.tokenId
+                                                        )
+                                                        if (match) setCertPurchase(match)
+                                                    }}
+                                                    className="gap-1">
+                                                    <Award className="h-3 w-3" />
+                                                    Certificate
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handleOpenSellDialog(holding)}
+                                                    disabled={holding.availableAmount <= 0}
+                                                    className="gap-1">
+                                                    <Tag className="h-3 w-3" />
+                                                    {holding.availableAmount <= 0 ? 'All Listed' : 'Sell Credits'}
+                                                </Button>
+                                            </div>
                                             <p className="text-xs text-muted-foreground">
                                                 Last purchase: {new Date(holding.lastPurchaseDate).toLocaleDateString()}
                                             </p>

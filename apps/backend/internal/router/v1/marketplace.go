@@ -23,4 +23,8 @@ func RegisterMarketplaceRoutes(g *echo.Group, h *handler.MarketplaceHandler, aut
 	// Buyer actions
 	marketplaceGroup.POST("/listings/:id/buy", h.BuyListing)
 	marketplaceGroup.GET("/purchases", h.GetBuyerPurchases)
+
+	// Retirement actions
+	marketplaceGroup.POST("/retire", h.RetireCredits)
+	marketplaceGroup.GET("/retirements", h.ListRetirements)
 }

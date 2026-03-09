@@ -317,3 +317,128 @@ func ethToWei(ethAmount float64) *big.Int {
 func (s *MarketplaceService) ListBuyerPurchases(ctx echo.Context, buyerID string, page, limit int) ([]model.PurchaseWithDetails, int, error) {
 	return s.marketplaceRepo.ListPurchasesByBuyer(ctx.Request().Context(), buyerID, page, limit)
 }
+
+// RetireCredits retires (burns) carbon credits from a buyer's lot
+func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.RetireCreditsRequest, buyerID string) (*model.Certificate, error) {
+	logger := middleware.GetLogger(ctx)
+
+	// 1. Look up buyer wallet
+	user, err := s.userRepo.FindByClerkID(ctx.Request().Context(), buyerID)
+	if err != nil || user == nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "user not found")
+	}
+	if user.WalletAddress == nil || *user.WalletAddress == "" {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "connect your wallet first")
+	}
+
+	// 2. Fetch project to get contract address
+	proj, err := s.projectRepo.FindByID(ctx.Request().Context(), req.ProjectID)
+	if err != nil || proj == nil {
+		return nil, echo.NewHTTPError(http.StatusNotFound, "project not found")
+	}
+	if proj.ContractAddress == nil || *proj.ContractAddress == "" {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "project has no deployed contract")
+	}
+
+	// 3. Scale the amount (1 credit = 1000 on-chain units)
+	scaledAmount := int64(math.Round(req.Amount * 1000))
+	scaledAmountBig := big.NewInt(scaledAmount)
+	lotIdBig := big.NewInt(int64(req.TokenID))
+
+	reason := req.Reason
+	if reason == "" {
+		reason = "Voluntary carbon offset"
+	}
+
+	// 4. Check already-retired amount to prevent double retirement
+	alreadyRetired, err := s.marketplaceRepo.GetRetiredAmountForLot(
+		ctx.Request().Context(), buyerID, req.ProjectID, req.TokenID,
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to check retired amount")
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, "failed to verify retirement eligibility")
+	}
+
+	// Get total purchased amount for this lot to compute available
+	purchases, _, err := s.marketplaceRepo.ListPurchasesByBuyer(ctx.Request().Context(), buyerID, 1, 1000)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, "failed to verify purchase history")
+	}
+
+	var totalPurchased float64
+	for _, p := range purchases {
+		if p.ProjectID == req.ProjectID && p.TokenID == req.TokenID {
+			totalPurchased += float64(p.ScaledAmount) / 1000.0
+		}
+	}
+
+	// Also check active listings for this lot (cannot retire listed credits)
+	listings, _, err := s.marketplaceRepo.ListActiveListings(ctx.Request().Context(), 1, 1000, nil)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, "failed to verify listing status")
+	}
+	var listedAmount float64
+	for _, l := range listings {
+		if l.SellerID == buyerID && l.ProjectID == req.ProjectID && l.TokenID == req.TokenID && l.Active {
+			listedAmount += float64(l.ScaledAmount) / 1000.0
+		}
+	}
+
+	available := totalPurchased - alreadyRetired - listedAmount
+	if req.Amount > available {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf(
+			"you cannot retire more than you own: %.3f available (%.3f purchased, %.3f retired, %.3f listed)",
+			available, totalPurchased, alreadyRetired, listedAmount,
+		))
+	}
+
+	logger.Info().
+		Str("project_id", req.ProjectID).
+		Int("token_id", req.TokenID).
+		Float64("amount", req.Amount).
+		Str("reason", reason).
+		Msg("retiring credits")
+
+	// 4. Call blockchain to burn tokens
+	txHash, err := s.blockchainService.client.RetireCredits(
+		ctx.Request().Context(),
+		*proj.ContractAddress,
+		lotIdBig,
+		scaledAmountBig,
+		*user.WalletAddress,
+		reason,
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to retire credits on-chain")
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to retire credits: %v", err))
+	}
+
+	logger.Info().Str("tx_hash", txHash).Msg("credits retired on-chain")
+
+	// 5. Record certificate in database
+	var reasonPtr *string
+	if reason != "" {
+		reasonPtr = &reason
+	}
+
+	cert, err := s.marketplaceRepo.CreateCertificate(
+		ctx.Request().Context(),
+		buyerID,
+		req.ProjectID,
+		req.TokenID,
+		txHash,
+		req.Amount,
+		reasonPtr,
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to record certificate")
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, "credits retired but failed to record certificate")
+	}
+
+	return cert, nil
+}
+
+// ListRetirements gets all retirement certificates for a buyer
+func (s *MarketplaceService) ListRetirements(ctx echo.Context, buyerID string, page, limit int) ([]model.CertificateWithDetails, int, error) {
+	return s.marketplaceRepo.ListCertificatesByOwner(ctx.Request().Context(), buyerID, page, limit)
+}

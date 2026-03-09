@@ -45,6 +45,13 @@ contract AssetToken is ERC1155, Ownable {
     );
     event LotListed(uint256 indexed lotId, uint256 amount, uint256 pricePerUnit);
     event LotDelisted(uint256 indexed lotId);
+    event CreditsRetired(
+        uint256 indexed lotId,
+        address indexed owner,
+        uint256 scaledAmount,
+        string reason,
+        uint256 timestamp
+    );
 
     // ── Constructor ─────────────────────────────────────────────────────
     constructor(
@@ -183,6 +190,45 @@ contract AssetToken is ERC1155, Ownable {
             lot.isAbleToBuy,
             lot.currentOwner,
             lot.parentLotId
+        );
+    }
+
+    /// @notice Retire (burn) credits from a lot — permanently offsets emissions.
+    ///         Called by the contract owner (backend admin key) on behalf of the lot owner.
+    /// @param lotId         The lot to retire from
+    /// @param scaledAmount  Amount in scaled units to retire
+    /// @param ownerAddr     Address of the lot owner
+    /// @param reason        Human-readable retirement reason
+    function retireCredits(
+        uint256 lotId,
+        uint256 scaledAmount,
+        address ownerAddr,
+        string calldata reason
+    ) external onlyOwner {
+        LotMetadata storage lot = lotDetails[lotId];
+        require(lot.currentOwner == ownerAddr, 'Not lot owner');
+        require(lot.amount >= scaledAmount, 'Insufficient lot balance');
+        require(
+            balanceOf(ownerAddr, lotId) >= scaledAmount,
+            'Owner balance mismatch'
+        );
+        require(scaledAmount > 0, 'Amount must be > 0');
+
+        // Burn the tokens
+        _burn(ownerAddr, lotId, scaledAmount);
+        lot.amount -= scaledAmount;
+
+        // If lot is fully depleted, mark not for sale
+        if (lot.amount == 0) {
+            lot.isAbleToBuy = false;
+        }
+
+        emit CreditsRetired(
+            lotId,
+            ownerAddr,
+            scaledAmount,
+            reason,
+            block.timestamp
         );
     }
 }
