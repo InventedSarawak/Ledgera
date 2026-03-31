@@ -62,3 +62,9 @@ tasks:
             - go mod tidy
             - echo 'Verifying dependencies...'
             - go mod verify
+
+    default:
+        desc: default task, prints all available tasks
+        cmds:
+            - task --list-all
+        silent: true

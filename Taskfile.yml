@@ -1,0 +1,44 @@
+version: '3'
+
+tasks:
+    default:
+        desc: List all available tasks
+        cmds:
+            - task --list-all
+    blockchain:
+        desc: Start anvil and deploy contracts
+        cmds:
+            - |
+                echo "Checking for running Anvil instance..."
+                pkill anvil || true
+
+                echo "Starting Anvil..."
+
+                # Start anvil in background but keep logs in terminal
+                anvil --chain-id 31337 --port 8545 &
+                ANVIL_PID=$!
+
+                # Wait until RPC is ready
+                echo "Waiting for Anvil RPC..."
+                until curl -s http://127.0.0.1:8545 > /dev/null; do
+                  sleep 0.5
+                done
+
+                echo "Deploying contracts..."
+                ./scripts/setup_blockchain.sh
+
+                echo "----------------------------------------------"
+                wait $ANVIL_PID
+        silent: false
+
+    frontend:
+        desc: Starts the Next.js frontend application as well as the packages
+        cmds:
+            - pnpm i && pnpm dev
+        silent: true
+
+    backend:
+        desc: Starts the Go backend application
+        cmds:
+            - cd apps/backend && task run
+        silent: true

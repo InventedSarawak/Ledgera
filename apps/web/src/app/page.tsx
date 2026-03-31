@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
-import { LandingPage } from '@/components/landing/LandingPage'
+import { PublicMarketplace } from '@/components/marketplace/PublicMarketplace'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { redirect } from 'next/navigation'
@@ -10,7 +10,7 @@ export default async function Home() {
     const { userId, sessionClaims } = await auth()
 
     if (!userId) {
-        return <LandingPage />
+        return <PublicMarketplace />
     }
 
     const metadata = sessionClaims?.metadata as CustomJwtSessionClaims['metadata'] | undefined

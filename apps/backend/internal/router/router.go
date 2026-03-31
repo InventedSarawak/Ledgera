@@ -67,6 +67,7 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 
 	v1.RegisterAuthRoutes(v1Router, h.Auth, middlewares.Auth)
 	v1.RegisterProjectRoutes(v1Router, h.Project, middlewares.Auth)
+	v1.RegisterMarketplaceRoutes(v1Router, h.Marketplace, middlewares.Auth)
 
 	return router
 }

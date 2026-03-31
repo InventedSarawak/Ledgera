@@ -11,8 +11,7 @@ export const ZProject = z.object({
     description: z.string(),
     imageUrl: z.string().url(),
     auditReportUrl: z.string().url().optional(),
-    locationLat: z.number(),
-    locationLng: z.number(),
+    locationPolygon: z.array(z.tuple([z.number(), z.number()])),
     area: z.number(),
     carbonAmount: z.number(),
     pricePerTonne: z.number(),
@@ -28,8 +27,14 @@ export const ZProjectWithSupplier = ZProject.extend({
 export const ZCreateProjectRequest = z.object({
     title: z.string().min(3).max(150),
     description: z.string().min(10),
-    locationLat: z.coerce.number(),
-    locationLng: z.coerce.number(),
+    locationPolygon: z.string().refine((val) => {
+        try {
+            const parsed = JSON.parse(val)
+            return Array.isArray(parsed) && parsed.length >= 4
+        } catch {
+            return false
+        }
+    }, 'Must be a valid JSON array of coordinates with at least 4 points'),
     area: z.coerce.number().positive(),
     carbonAmount: z.coerce.number().positive()
 })
@@ -37,8 +42,17 @@ export const ZCreateProjectRequest = z.object({
 export const ZUpdateProjectRequest = z.object({
     title: z.string().min(3).max(150).optional(),
     description: z.string().min(10).optional(),
-    locationLat: z.coerce.number().optional(),
-    locationLng: z.coerce.number().optional(),
+    locationPolygon: z
+        .string()
+        .refine((val) => {
+            try {
+                const parsed = JSON.parse(val)
+                return Array.isArray(parsed) && parsed.length >= 4
+            } catch {
+                return false
+            }
+        }, 'Must be a valid JSON array of coordinates with at least 4 points')
+        .optional(),
     area: z.coerce.number().positive().optional(),
     carbonAmount: z.coerce.number().positive().optional(),
     contractAddress: z.string().optional(),
@@ -46,3 +60,11 @@ export const ZUpdateProjectRequest = z.object({
 })
 
 export const ZProjectListResponse = z.array(ZProject)
+
+export const ZApprovedRegion = z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    locationPolygon: z.array(z.tuple([z.number(), z.number()]))
+})
+
+export const ZApprovedRegionListResponse = z.array(ZApprovedRegion)

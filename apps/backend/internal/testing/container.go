@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rs/zerolog"
 	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/inventedsarawak/ledgera/internal/database"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -32,7 +32,7 @@ func SetupTestDB(t *testing.T) (*TestDB, func()) {
 	dbPassword := "testpassword"
 
 	req := testcontainers.ContainerRequest{
-		Image:        "postgres:15-alpine",
+		Image:        "postgis/postgis:15-3.3-alpine",
 		ExposedPorts: []string{"5432/tcp"},
 		Env: map[string]string{
 			"POSTGRES_DB":       dbName,

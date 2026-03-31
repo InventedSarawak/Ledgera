@@ -12,7 +12,7 @@ contract AssetRegistryScript is Script {
     function run() public {
         vm.startBroadcast();
 
-        counter = new Counter();
+        assetRegistry = new AssetRegistry();
 
         vm.stopBroadcast();
     }

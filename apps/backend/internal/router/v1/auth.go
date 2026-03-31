@@ -12,4 +12,5 @@ func RegisterAuthRoutes(r *echo.Group, h *handler.AuthHandler, auth *middleware.
 	authGroup.Use(auth.RequireAuth)
 
 	authGroup.POST("/sync-user", h.SyncUser)
+	authGroup.PATCH("/profile", h.UpdateProfile)
 }

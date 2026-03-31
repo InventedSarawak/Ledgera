@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import Image from 'next/image'
-import { MapPin, Ruler } from 'lucide-react'
+import { AxiosError } from 'axios'
+import { getPolygonCentroid } from '@/lib/utils'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { MapPin, Ruler } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { ProjectDetailsDialog } from '@/components/supplier/ProjectDetailsDialog'
 import { EditProjectDialog } from '@/components/supplier/EditProjectDialog'
@@ -93,6 +95,24 @@ export function ProjectCard({ project }: ProjectCardProps) {
         }
     })
 
+    const { mutate: mintTokens, isPending: isMinting } = useMutation({
+        mutationFn: async () => {
+            const token = await getToken()
+            await axiosInstance.post(`/projects/${project.id}/mint`, null, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['projects', 'mine'] })
+        },
+        onError: (error: Error) => {
+            console.error('Mint error:', error)
+            const axiosError = error as AxiosError<{ message?: string }>
+            const errorMessage = axiosError?.response?.data?.message || error?.message || 'Failed to mint tokens'
+            alert(errorMessage)
+        }
+    })
+
     return (
         <>
             <ProjectDetailsDialog project={project} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} />
@@ -124,7 +144,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
                             <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 <span className="line-clamp-1">
-                                    {project.locationLat.toFixed(2)}, {project.locationLng.toFixed(2)}
+                                    {getPolygonCentroid(project.locationPolygon).lat.toFixed(2)},{' '}
+                                    {getPolygonCentroid(project.locationPolygon).lng.toFixed(2)}
                                 </span>
                             </div>
                             <span className="text-slate-300">•</span>
@@ -142,18 +163,18 @@ export function ProjectCard({ project }: ProjectCardProps) {
                     <Button
                         variant={config.actionVariant}
                         className="flex-1"
-                        disabled={config.actionDisabled || isSubmitting}
+                        disabled={config.actionDisabled || isSubmitting || isMinting}
                         onClick={(e) => {
                             e.stopPropagation()
                             if (project.status === 'DRAFT' || project.status === 'REJECTED') {
                                 submitProject()
                             } else if (project.status === 'APPROVED') {
-                                console.log('Minting...')
+                                mintTokens()
                             } else if (project.status === 'DEPLOYED') {
                                 console.log('Managing...')
                             }
                         }}>
-                        {isSubmitting ? 'Submitting...' : config.actionLabel}
+                        {isSubmitting ? 'Submitting...' : isMinting ? 'Minting...' : config.actionLabel}
                     </Button>
                     <Button
                         variant="outline"

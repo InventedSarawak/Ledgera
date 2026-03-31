@@ -1,0 +1,162 @@
+package handler
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/inventedsarawak/ledgera/internal/middleware"
+	"github.com/inventedsarawak/ledgera/internal/model"
+	"github.com/inventedsarawak/ledgera/internal/server"
+	"github.com/inventedsarawak/ledgera/internal/service"
+	"github.com/inventedsarawak/ledgera/internal/validation"
+	"github.com/labstack/echo/v4"
+)
+
+type MarketplaceHandler struct {
+	Handler
+	marketplaceService *service.MarketplaceService
+}
+
+func NewMarketplaceHandler(s *server.Server, marketplaceService *service.MarketplaceService) *MarketplaceHandler {
+	return &MarketplaceHandler{
+		Handler:            NewHandler(s),
+		marketplaceService: marketplaceService,
+	}
+}
+
+// CreateListing creates a new marketplace listing
+func (h *MarketplaceHandler) CreateListing(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.CreateListingRequest) (*model.Listing, error) {
+			sellerID := middleware.GetUserID(c)
+			return h.marketplaceService.CreateListing(c, *req, sellerID)
+		},
+		http.StatusCreated,
+		&validation.CreateListingRequest{},
+	)(c)
+}
+
+// ListActiveListings gets all active marketplace listings
+func (h *MarketplaceHandler) ListActiveListings(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ListMarketplaceRequest) ([]model.ListingWithDetails, error) {
+			listings, total, err := h.marketplaceService.ListActiveListings(c, req.Page, req.Limit, req.ProjectID)
+			if err != nil {
+				return nil, err
+			}
+			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
+			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
+			return listings, nil
+		},
+		http.StatusOK,
+		&validation.ListMarketplaceRequest{},
+	)(c)
+}
+
+// GetListing gets a specific listing
+func (h *MarketplaceHandler) GetListing(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.GetListingRequest) (*model.Listing, error) {
+			return h.marketplaceService.GetListing(c, req.ListingID)
+		},
+		http.StatusOK,
+		&validation.GetListingRequest{},
+	)(c)
+}
+
+// BuyListing handles purchasing a listing
+func (h *MarketplaceHandler) BuyListing(c echo.Context) error {
+	return HandleNoContent(
+		h.Handler,
+		func(c echo.Context, req *validation.BuyListingRequest) error {
+			buyerID := middleware.GetUserID(c)
+			return h.marketplaceService.BuyListing(c, *req, buyerID)
+		},
+		http.StatusOK,
+		&validation.BuyListingRequest{},
+	)(c)
+}
+
+// CancelListing cancels a marketplace listing
+func (h *MarketplaceHandler) CancelListing(c echo.Context) error {
+	return HandleNoContent(
+		h.Handler,
+		func(c echo.Context, req *validation.CancelListingRequest) error {
+			userID := middleware.GetUserID(c)
+			return h.marketplaceService.CancelListing(c, req.ListingID, userID)
+		},
+		http.StatusNoContent,
+		&validation.CancelListingRequest{},
+	)(c)
+}
+
+// DeployProjectToken manually deploys a project token (admin only)
+func (h *MarketplaceHandler) DeployProjectToken(c echo.Context) error {
+	return HandleNoContent(
+		h.Handler,
+		func(c echo.Context, req *validation.DeployProjectTokenRequest) error {
+			// This would call the blockchain service directly
+			// For now, it's handled automatically in the Approve flow
+			return echo.NewHTTPError(http.StatusNotImplemented, "Token deployment happens automatically on project approval")
+		},
+		http.StatusOK,
+		&validation.DeployProjectTokenRequest{},
+	)(c)
+}
+
+// GetBuyerPurchases returns authenticated buyer's purchase history
+func (h *MarketplaceHandler) GetBuyerPurchases(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ListMarketplaceRequest) ([]model.PurchaseWithDetails, error) {
+			userID := middleware.GetUserID(c)
+			purchases, total, err := h.marketplaceService.ListBuyerPurchases(c, userID, req.Page, req.Limit)
+			if err != nil {
+				return nil, err
+			}
+			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
+			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
+			return purchases, nil
+		},
+		http.StatusOK,
+		&validation.ListMarketplaceRequest{},
+	)(c)
+}
+
+// RetireCredits handles retiring (burning) carbon credits
+func (h *MarketplaceHandler) RetireCredits(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.RetireCreditsRequest) (*model.Certificate, error) {
+			buyerID := middleware.GetUserID(c)
+			return h.marketplaceService.RetireCredits(c, *req, buyerID)
+		},
+		http.StatusCreated,
+		&validation.RetireCreditsRequest{},
+	)(c)
+}
+
+// ListRetirements returns authenticated buyer's retirement history
+func (h *MarketplaceHandler) ListRetirements(c echo.Context) error {
+	return Handle(
+		h.Handler,
+		func(c echo.Context, req *validation.ListMarketplaceRequest) ([]model.CertificateWithDetails, error) {
+			userID := middleware.GetUserID(c)
+			certs, total, err := h.marketplaceService.ListRetirements(c, userID, req.Page, req.Limit)
+			if err != nil {
+				return nil, err
+			}
+			c.Response().Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+			c.Response().Header().Set("X-Page", fmt.Sprintf("%d", req.Page))
+			c.Response().Header().Set("X-Limit", fmt.Sprintf("%d", req.Limit))
+			return certs, nil
+		},
+		http.StatusOK,
+		&validation.ListMarketplaceRequest{},
+	)(c)
+}

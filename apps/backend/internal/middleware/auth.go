@@ -112,7 +112,10 @@ func (auth *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc 
 
 		if isDev && bypassHeader == "bypass" {
 			// --- BYPASS PATH ---
-			mockUserID := auth.server.Config.Auth.MockUserID
+			mockUserID := c.Request().Header.Get("X-Test-User-ID")
+			if mockUserID == "" {
+				mockUserID = auth.server.Config.Auth.MockUserID
+			}
 			if mockUserID == "" {
 				mockUserID = "user_test_mock_123"
 			}
