@@ -50,7 +50,10 @@ func createMultipartBody(t *testing.T, fields map[string]string, fileField strin
 	return writer.FormDataContentType(), buf.Bytes()
 }
 
-func createMultipartBodyWithFiles(t *testing.T, fields map[string]string, files map[string]struct{ name string; content []byte }) (contentType string, body []byte) {
+func createMultipartBodyWithFiles(t *testing.T, fields map[string]string, files map[string]struct {
+	name    string
+	content []byte
+}) (contentType string, body []byte) {
 	t.Helper()
 	buf := &bytes.Buffer{}
 	writer := multipart.NewWriter(buf)
@@ -89,14 +92,16 @@ func TestProjectCRUDAndSubmission(t *testing.T) {
 
 	// CREATE (multipart)
 	fields := map[string]string{
-		"title":        "Mangrove Restoration",
-		"description":  "Restoring mangrove ecosystems for carbon sequestration.",
-		"locationLat":  "1.2345",
-		"locationLng":  "101.5678",
-		"area":         "123.45",
-		"carbonAmount": "1000",
+		"title":           "Mangrove Restoration",
+		"description":     "Restoring mangrove ecosystems for carbon sequestration.",
+		"locationPolygon": "[[1.2345, 101.5678], [1.2345, 101.5679], [1.2346, 101.5679], [1.2346, 101.5678], [1.2345, 101.5678]]",
+		"area":            "123.45",
+		"carbonAmount":    "1000",
 	}
-	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct{ name string; content []byte }{
+	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct {
+		name    string
+		content []byte
+	}{
 		"image":       {name: "cover.jpg", content: []byte("fake-image")},
 		"auditReport": {name: "audit.pdf", content: []byte("fake-audit-report")},
 	})
@@ -131,13 +136,15 @@ func TestProjectCRUDAndSubmission(t *testing.T) {
 
 	// CREATE second project to test pagination across pages
 	ct2, body2 := createMultipartBodyWithFiles(t, map[string]string{
-		"title":        "Forest Conservation",
-		"description":  "Protecting forests.",
-		"locationLat":  "2.0000",
-		"locationLng":  "100.0000",
-		"area":         "50",
-		"carbonAmount": "500",
-	}, map[string]struct{ name string; content []byte }{
+		"title":           "Forest Conservation",
+		"description":     "Protecting forests.",
+		"locationPolygon": "[[2.0000, 100.0000], [2.0000, 100.0001], [2.0001, 100.0001], [2.0001, 100.0000], [2.0000, 100.0000]]",
+		"area":            "50",
+		"carbonAmount":    "500",
+	}, map[string]struct {
+		name    string
+		content []byte
+	}{
 		"image":       {name: "cover2.jpg", content: []byte("fake-image-2")},
 		"auditReport": {name: "audit2.pdf", content: []byte("fake-audit-report-2")},
 	})
@@ -266,14 +273,16 @@ func TestAdminProjectWorkflow(t *testing.T) {
 	// 1. Create a project (acts as Supplier)
 	fields := map[string]string{
 
-		"title":        "Carbon Project Alpha",
-		"description":  "A new project for review.",
-		"locationLat":  "10.0000",
-		"locationLng":  "20.0000",
-		"area":         "100.50",
-		"carbonAmount": "20000",
+		"title":           "Carbon Project Alpha",
+		"description":     "A new project for review.",
+		"locationPolygon": "[[10.0000, 20.0000], [10.0000, 20.0001], [10.0001, 20.0001], [10.0001, 20.0000], [10.0000, 20.0000]]",
+		"area":            "100.50",
+		"carbonAmount":    "20000",
 	}
-	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct{ name string; content []byte }{
+	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct {
+		name    string
+		content []byte
+	}{
 		"image":       {name: "alpha.jpg", content: []byte("image-data")},
 		"auditReport": {name: "alpha-audit.pdf", content: []byte("audit-data")},
 	})
@@ -330,13 +339,15 @@ func TestAdminProjectWorkflow(t *testing.T) {
 	// 5. Test Reject workflow with a fresh project
 	// Create another project
 	ct2, body2 := createMultipartBodyWithFiles(t, map[string]string{
-		"title":        "Carbon Project Beta",
-		"description":  "Another project for reject test.",
-		"locationLat":  "15.0000",
-		"locationLng":  "25.0000",
-		"area":         "50.00",
-		"carbonAmount": "800",
-	}, map[string]struct{ name string; content []byte }{
+		"title":           "Carbon Project Beta",
+		"description":     "Another project for reject test.",
+		"locationPolygon": "[[15.0000, 25.0000], [15.0000, 25.0001], [15.0001, 25.0001], [15.0001, 25.0000], [15.0000, 25.0000]]",
+		"area":            "50.00",
+		"carbonAmount":    "500",
+	}, map[string]struct {
+		name    string
+		content []byte
+	}{
 		"image":       {name: "beta.jpg", content: []byte("image-data-2")},
 		"auditReport": {name: "beta-audit.pdf", content: []byte("audit-data-2")},
 	})
@@ -368,4 +379,87 @@ func TestAdminProjectWorkflow(t *testing.T) {
 	var rejected project.Project
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &rejected))
 	assert.Equal(t, project.ProjectStatusRejected, rejected.Status)
+}
+
+func TestLocationPolygonValidation(t *testing.T) {
+	_, _, e, cleanup := itesting.SetupTest(t)
+	defer cleanup()
+
+	// Ensure mock user exists (bypass auth sync)
+	{
+		payload := user.SyncUserPayload{Email: "test-location@example.com"}
+		jsonBody := itesting.MustMarshalJSON(t, payload)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sync-user", bytes.NewReader(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Test-Auth", "bypass")
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		require.Equal(t, http.StatusOK, rec.Code)
+	}
+
+	tests := []struct {
+		name            string
+		locationPolygon string
+		expectedStatus  int
+		expectedMsg     string
+	}{
+		{
+			name:            "Missing locationPolygon",
+			locationPolygon: "",
+			expectedStatus:  http.StatusBadRequest,
+			expectedMsg:     "locationpolygon", // usually part of validator error or missing field error
+		},
+		{
+			name:            "Invalid JSON for locationPolygon",
+			locationPolygon: "[invalid, json]",
+			expectedStatus:  http.StatusBadRequest,
+			expectedMsg:     "Invalid LocationPolygon format; must be a JSON array of [lat, lng]",
+		},
+		{
+			name:            "Polygon with less than 4 points",
+			locationPolygon: "[[10.0, 20.0], [10.0, 20.1], [10.1, 20.1]]",
+			expectedStatus:  http.StatusBadRequest,
+			expectedMsg:     "LocationPolygon must contain at least 4 points (closed polygon)",
+		},
+		{
+			name:            "Valid polygon creation checks",
+			locationPolygon: "[[10.0, 20.0], [10.0, 20.1], [10.1, 20.1], [10.1, 20.0], [10.0, 20.0]]",
+			expectedStatus:  http.StatusCreated,
+			expectedMsg:     "", // no validation error
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fields := map[string]string{
+				"title":        "Location Test Project",
+				"description":  "A project to test location rules.",
+				"area":         "100.50",
+				"carbonAmount": "20000",
+			}
+			if tc.locationPolygon != "" {
+				fields["locationPolygon"] = tc.locationPolygon
+			}
+
+			ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct {
+				name    string
+				content []byte
+			}{
+				"image":       {name: "loc-test.jpg", content: []byte("image-data")},
+				"auditReport": {name: "loc-test-audit.pdf", content: []byte("audit-data")},
+			})
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/projects", bytes.NewReader(body))
+			req.Header.Set("Content-Type", ct)
+			req.Header.Set("X-Test-Auth", "bypass")
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.expectedStatus, rec.Code)
+
+			if tc.expectedMsg != "" {
+				assert.Contains(t, rec.Body.String(), tc.expectedMsg)
+			}
+		})
+	}
 }

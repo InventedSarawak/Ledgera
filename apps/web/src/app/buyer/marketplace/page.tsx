@@ -114,13 +114,13 @@ export default function BuyerMarketplacePage() {
                 // Prevent transaction if insufficient balance
                 const balance = await provider.getBalance(walletAddress)
                 if (balance < totalPriceWei) {
-                   toast({
-                       title: 'Insufficient Balance',
-                       description: `You need at least ${formatEther(totalPriceWei)} ETH to complete this purchase`,
-                       variant: 'destructive'
-                   })
-                   setBuyingId(null)
-                   return
+                    toast({
+                        title: 'Insufficient Balance',
+                        description: `You need at least ${formatEther(totalPriceWei)} ETH to complete this purchase`,
+                        variant: 'destructive'
+                    })
+                    setBuyingId(null)
+                    return
                 }
 
                 toast({

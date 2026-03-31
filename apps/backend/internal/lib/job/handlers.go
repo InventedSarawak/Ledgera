@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/hibiken/asynq"
-	"github.com/rs/zerolog"
 	"github.com/inventedsarawak/ledgera/internal/config"
 	"github.com/inventedsarawak/ledgera/internal/lib/email"
+	"github.com/rs/zerolog"
 )
 
 var emailClient *email.Client

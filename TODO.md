@@ -22,7 +22,7 @@
 
 ## Evaluation Todos
 
-- [ ] Add marketplace on Landing page.
+- [x] Add marketplace on Landing page.
 - [ ] Complete and fix the marketplace logic.
-- [ ] Add Map selection functionality to enter coordinates for the project location.
+- [x] Add Map selection functionality to enter coordinates for the project location.
 - [ ] Add OCR to extract text from images uploaded for projects, and confirm geniune project details.

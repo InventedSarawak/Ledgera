@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { Calendar, FileText, Globe, MapPin, ShieldCheck, Coins, Ruler } from 'lucide-react'
+import { getPolygonCentroid } from '@/lib/utils'
 
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -43,7 +44,8 @@ export function ProjectDetailsDialog({ project, open, onOpenChange }: ProjectDet
                         <DialogTitle className="text-2xl font-bold text-slate-900">{project.title}</DialogTitle>
                         <DialogDescription className="flex items-center gap-2 text-slate-500">
                             <MapPin className="h-4 w-4" />
-                            {project.locationLat.toFixed(4)}, {project.locationLng.toFixed(4)}
+                            {getPolygonCentroid(project.locationPolygon).lat.toFixed(4)},{' '}
+                            {getPolygonCentroid(project.locationPolygon).lng.toFixed(4)}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -78,7 +80,8 @@ export function ProjectDetailsDialog({ project, open, onOpenChange }: ProjectDet
                                         Location Coordinates
                                     </div>
                                     <div className="mt-1 text-sm text-slate-600">
-                                        {project.locationLat}, {project.locationLng}
+                                        {getPolygonCentroid(project.locationPolygon).lat.toFixed(6)},{' '}
+                                        {getPolygonCentroid(project.locationPolygon).lng.toFixed(6)}
                                     </div>
                                 </div>
 

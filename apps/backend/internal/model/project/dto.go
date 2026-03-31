@@ -19,10 +19,9 @@ type CreateProjectPayload struct {
 	Description string `json:"description" validate:"required,min=10"`
 	ImageURL    string `json:"imageUrl" validate:"required,url"`
 
-	LocationLat  float64 `json:"locationLat" validate:"required,latitude"`
-	LocationLng  float64 `json:"locationLng" validate:"required,longitude"`
-	Area         float64 `json:"area" validate:"required,gt=0"`
-	CarbonAmount float64 `json:"carbonAmount" validate:"required,gt=0"`
+	LocationPolygon [][2]float64 `json:"locationPolygon" validate:"required,min=4"`
+	Area            float64      `json:"area" validate:"required,gt=0"`
+	CarbonAmount    float64      `json:"carbonAmount" validate:"required,gt=0"`
 }
 
 func (p *CreateProjectPayload) Validate() error {
@@ -40,8 +39,7 @@ type UpdateProjectPayload struct {
 	Description     *string        `json:"description" validate:"omitempty,min=10"`
 	ContractAddress *string        `json:"contractAddress" validate:"omitempty,eth_addr"`
 	TokenSymbol     *string        `json:"tokenSymbol" validate:"omitempty"` // Added TokenSymbol
-	LocationLat     *float64       `json:"locationLat" validate:"omitempty,latitude"`
-	LocationLng     *float64       `json:"locationLng" validate:"omitempty,longitude"`
+	LocationPolygon *[][2]float64  `json:"locationPolygon" validate:"omitempty,min=4"`
 	Area            *float64       `json:"area" validate:"omitempty,gt=0"`
 	Status          *ProjectStatus `json:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`
 	CarbonAmount    *float64       `json:"carbonAmount" validate:"omitempty,gt=0"`
@@ -109,13 +107,12 @@ func (p *DeleteProjectPayload) Validate() error {
 // ------------------------------------------------------------
 
 type CreateProjectRequestPayload struct {
-	Title        string  `json:"title" validate:"required"`
-	Description  string  `json:"description" validate:"required"`
-	ImageURL     string  `json:"imageUrl" validate:"required,url"`
-	LocationLat  float64 `json:"locationLat" validate:"required"`
-	LocationLng  float64 `json:"locationLng" validate:"required"`
-	Area         float64 `json:"area" validate:"required"`
-	CarbonAmount float64 `json:"carbonAmount" validate:"required"`
+	Title           string       `json:"title" validate:"required"`
+	Description     string       `json:"description" validate:"required"`
+	ImageURL        string       `json:"imageUrl" validate:"required,url"`
+	LocationPolygon [][2]float64 `json:"locationPolygon" validate:"required,min=4"`
+	Area            float64      `json:"area" validate:"required"`
+	CarbonAmount    float64      `json:"carbonAmount" validate:"required"`
 }
 
 func (p *CreateProjectRequestPayload) Validate() error {

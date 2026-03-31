@@ -199,12 +199,11 @@ func createProject(t *testing.T, e *echo.Echo, userID string) string {
 
 	// Create multipart form for project creation
 	fields := map[string]string{
-		"title":        "Carbon Project",
-		"description":  "Test carbon project",
-		"locationLat":  "1.2345",
-		"locationLng":  "101.5678",
-		"area":         "100.0",
-		"carbonAmount": "1000",
+		"title":           "Carbon Project",
+		"description":     "Test carbon project",
+		"locationPolygon": "[[1.2345, 101.5678], [1.2345, 101.5679], [1.2346, 101.5679], [1.2346, 101.5678], [1.2345, 101.5678]]",
+		"area":            "100.0",
+		"carbonAmount":    "1000",
 	}
 	ct, body := createMultipartBodyWithFiles(t, fields, map[string]struct {
 		name    string

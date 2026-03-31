@@ -204,11 +204,8 @@
                     "type": "string",
                     "minLength": 10
                   },
-                  "locationLat": {
-                    "type": "number"
-                  },
-                  "locationLng": {
-                    "type": "number"
+                  "locationPolygon": {
+                    "type": "string"
                   },
                   "area": {
                     "type": "number",
@@ -232,8 +229,7 @@
                 "required": [
                   "title",
                   "description",
-                  "locationLat",
-                  "locationLng",
+                  "locationPolygon",
                   "area",
                   "carbonAmount",
                   "image",
@@ -272,11 +268,9 @@
                       "type": "string",
                       "format": "uri"
                     },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
+                    "locationPolygon": {
+                      "type": "array",
+                      "items": {}
                     },
                     "area": {
                       "type": "number"
@@ -318,8 +312,7 @@
                     "title",
                     "description",
                     "imageUrl",
-                    "locationLat",
-                    "locationLng",
+                    "locationPolygon",
                     "area",
                     "carbonAmount",
                     "pricePerTonne",
@@ -392,11 +385,9 @@
                         "type": "string",
                         "format": "uri"
                       },
-                      "locationLat": {
-                        "type": "number"
-                      },
-                      "locationLng": {
-                        "type": "number"
+                      "locationPolygon": {
+                        "type": "array",
+                        "items": {}
                       },
                       "area": {
                         "type": "number"
@@ -438,8 +429,7 @@
                       "title",
                       "description",
                       "imageUrl",
-                      "locationLat",
-                      "locationLng",
+                      "locationPolygon",
                       "area",
                       "carbonAmount",
                       "pricePerTonne",
@@ -528,11 +518,9 @@
                       "type": "string",
                       "format": "uri"
                     },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
+                    "locationPolygon": {
+                      "type": "array",
+                      "items": {}
                     },
                     "area": {
                       "type": "number"
@@ -574,8 +562,7 @@
                     "title",
                     "description",
                     "imageUrl",
-                    "locationLat",
-                    "locationLng",
+                    "locationPolygon",
                     "area",
                     "carbonAmount",
                     "pricePerTonne",
@@ -625,11 +612,8 @@
                     "type": "string",
                     "minLength": 10
                   },
-                  "locationLat": {
-                    "type": "number"
-                  },
-                  "locationLng": {
-                    "type": "number"
+                  "locationPolygon": {
+                    "type": "string"
                   },
                   "area": {
                     "type": "number",
@@ -696,11 +680,9 @@
                       "type": "string",
                       "format": "uri"
                     },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
+                    "locationPolygon": {
+                      "type": "array",
+                      "items": {}
                     },
                     "area": {
                       "type": "number"
@@ -742,8 +724,7 @@
                     "title",
                     "description",
                     "imageUrl",
-                    "locationLat",
-                    "locationLng",
+                    "locationPolygon",
                     "area",
                     "carbonAmount",
                     "pricePerTonne",
@@ -898,11 +879,9 @@
                         "type": "string",
                         "format": "uri"
                       },
-                      "locationLat": {
-                        "type": "number"
-                      },
-                      "locationLng": {
-                        "type": "number"
+                      "locationPolygon": {
+                        "type": "array",
+                        "items": {}
                       },
                       "area": {
                         "type": "number"
@@ -948,8 +927,7 @@
                       "title",
                       "description",
                       "imageUrl",
-                      "locationLat",
-                      "locationLng",
+                      "locationPolygon",
                       "area",
                       "carbonAmount",
                       "pricePerTonne",
@@ -980,6 +958,62 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/regions": {
+      "get": {
+        "summary": "List Approved Regions",
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "excludeProjectId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "listApprovedRegions",
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "locationPolygon": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "locationPolygon"
+                    ]
+                  }
                 }
               }
             }
@@ -1046,11 +1080,9 @@
                       "type": "string",
                       "format": "uri"
                     },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
+                    "locationPolygon": {
+                      "type": "array",
+                      "items": {}
                     },
                     "area": {
                       "type": "number"
@@ -1092,8 +1124,7 @@
                     "title",
                     "description",
                     "imageUrl",
-                    "locationLat",
-                    "locationLng",
+                    "locationPolygon",
                     "area",
                     "carbonAmount",
                     "pricePerTonne",
@@ -1166,11 +1197,9 @@
                       "type": "string",
                       "format": "uri"
                     },
-                    "locationLat": {
-                      "type": "number"
-                    },
-                    "locationLng": {
-                      "type": "number"
+                    "locationPolygon": {
+                      "type": "array",
+                      "items": {}
                     },
                     "area": {
                       "type": "number"
@@ -1212,8 +1241,7 @@
                     "title",
                     "description",
                     "imageUrl",
-                    "locationLat",
-                    "locationLng",
+                    "locationPolygon",
                     "area",
                     "carbonAmount",
                     "pricePerTonne",

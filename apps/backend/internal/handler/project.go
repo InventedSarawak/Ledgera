@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -43,14 +44,22 @@ func (h *ProjectHandler) Create(c echo.Context) error {
 				return nil, echo.NewHTTPError(http.StatusBadRequest, "Audit report file is required")
 			}
 
+			// Parse LocationPolygon JSON string
+			var polygon [][2]float64
+			if err := json.Unmarshal([]byte(req.LocationPolygon), &polygon); err != nil {
+				return nil, echo.NewHTTPError(http.StatusBadRequest, "Invalid LocationPolygon format; must be a JSON array of [lat, lng]")
+			}
+			if len(polygon) < 4 {
+				return nil, echo.NewHTTPError(http.StatusBadRequest, "LocationPolygon must contain at least 4 points (closed polygon)")
+			}
+
 			payload := project.CreateProjectPayload{
-				Title:        req.Title,
-				Description:  req.Description,
-				LocationLat:  req.LocationLat,
-				LocationLng:  req.LocationLng,
-				Area:         req.Area,
-				CarbonAmount: req.CarbonAmount,
-				ImageURL:     "https://pending.upload",
+				Title:           req.Title,
+				Description:     req.Description,
+				LocationPolygon: polygon,
+				Area:            req.Area,
+				CarbonAmount:    req.CarbonAmount,
+				ImageURL:        "https://pending.upload",
 			}
 
 			// Pass both files to the service
@@ -139,6 +148,18 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 				auditHeader = doc
 			}
 
+			var polygonPtr *[][2]float64
+			if req.LocationPolygon != nil {
+				var polygon [][2]float64
+				if err := json.Unmarshal([]byte(*req.LocationPolygon), &polygon); err != nil {
+					return nil, echo.NewHTTPError(http.StatusBadRequest, "Invalid LocationPolygon format; must be a JSON array of [lat, lng]")
+				}
+				if len(polygon) < 4 {
+					return nil, echo.NewHTTPError(http.StatusBadRequest, "LocationPolygon must contain at least 4 points (closed polygon)")
+				}
+				polygonPtr = &polygon
+			}
+
 			var statusPtr *project.ProjectStatus
 			if req.Status != nil {
 				s := project.ProjectStatus(*req.Status)
@@ -148,8 +169,7 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 				ID:              req.ID,
 				Title:           req.Title,
 				Description:     req.Description,
-				LocationLat:     req.LocationLat,
-				LocationLng:     req.LocationLng,
+				LocationPolygon: polygonPtr,
 				Area:            req.Area,
 				CarbonAmount:    req.CarbonAmount,
 				ContractAddress: req.ContractAddress,
@@ -209,4 +229,17 @@ func (h *ProjectHandler) MintTokens(c echo.Context) error {
 		http.StatusOK,
 		&validation.MintProjectTokensRequest{},
 	)(c)
+}
+
+func (h *ProjectHandler) ListApprovedRegions(c echo.Context) error {
+	excludeID := c.QueryParam("excludeProjectId")
+	var excludePtr *string
+	if excludeID != "" {
+		excludePtr = &excludeID
+	}
+	regions, err := h.projectService.ListApprovedRegions(c, excludePtr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch approved regions").SetInternal(err)
+	}
+	return c.JSON(http.StatusOK, regions)
 }

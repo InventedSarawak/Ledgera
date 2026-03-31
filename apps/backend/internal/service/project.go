@@ -49,6 +49,15 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 		return nil, err
 	}
 
+	// Overlap check
+	overlap, err := s.repo.CheckOverlap(ctx.Request().Context(), payload.LocationPolygon, nil)
+	if err != nil {
+		return nil, err
+	}
+	if overlap {
+		return nil, echo.NewHTTPError(http.StatusConflict, "The provided location overlaps with an existing registered project area")
+	}
+
 	// 1. Upload Image (Required)
 	imageURL, err := s.uploadFile(ctx, imageFile, "projects", supplierID)
 	if err != nil {
@@ -79,9 +88,8 @@ func (s *ProjectService) Create(ctx echo.Context, payload project.CreateProjectP
 		ImageURL:       imageURL,
 		AuditReportURL: auditReportURL, // Save the URL
 
-		LocationLat: payload.LocationLat,
-		LocationLng: payload.LocationLng,
-		Area:        payload.Area,
+		LocationPolygon: payload.LocationPolygon,
+		Area:            payload.Area,
 
 		CarbonAmount:  payload.CarbonAmount,
 		PricePerTonne: INITIAL_MARKET_PRICE,
@@ -130,6 +138,16 @@ func (s *ProjectService) Update(ctx echo.Context, id string, payload project.Upd
 	}
 	if existing.Status == project.ProjectStatusPending || existing.Status == project.ProjectStatusApproved || existing.Status == project.ProjectStatusDeployed {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "Project cannot be edited after submission")
+	}
+
+	if payload.LocationPolygon != nil {
+		overlap, err := s.repo.CheckOverlap(ctx.Request().Context(), *payload.LocationPolygon, &id)
+		if err != nil {
+			return nil, err
+		}
+		if overlap {
+			return nil, echo.NewHTTPError(http.StatusConflict, "The provided location overlaps with an existing registered project area")
+		}
 	}
 
 	// Handle Image Update
@@ -428,4 +446,8 @@ func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID s
 	}
 
 	return nil
+}
+
+func (s *ProjectService) ListApprovedRegions(ctx echo.Context, excludeProjectID *string) ([]repository.ProjectRegion, error) {
+	return s.repo.ListApprovedRegions(ctx.Request().Context(), excludeProjectID)
 }

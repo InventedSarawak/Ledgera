@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import Image from 'next/image'
-import { MapPin, Ruler } from 'lucide-react'
 import { AxiosError } from 'axios'
+import { getPolygonCentroid } from '@/lib/utils'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { MapPin, Ruler } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { ProjectDetailsDialog } from '@/components/supplier/ProjectDetailsDialog'
 import { EditProjectDialog } from '@/components/supplier/EditProjectDialog'
@@ -143,7 +144,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
                             <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 <span className="line-clamp-1">
-                                    {project.locationLat.toFixed(2)}, {project.locationLng.toFixed(2)}
+                                    {getPolygonCentroid(project.locationPolygon).lat.toFixed(2)},{' '}
+                                    {getPolygonCentroid(project.locationPolygon).lng.toFixed(2)}
                                 </span>
                             </div>
                             <span className="text-slate-300">•</span>

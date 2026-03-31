@@ -15,8 +15,7 @@ export const ZProject = z.object({
     description: z.string(),
     imageUrl: z.string().url(),
     auditReportUrl: z.string().url().optional(),
-    locationLat: z.number(),
-    locationLng: z.number(),
+    locationPolygon: z.array(z.tuple([z.number(), z.number()])),
     area: z.number(),
     carbonAmount: z.number(),
     pricePerTonne: z.number(),
@@ -33,10 +32,9 @@ const ZFile = z.object({ type: z.enum(['file']) })
 export const ZCreateProjectBody = z.object({
     title: z.string().min(3).max(150),
     description: z.string().min(10),
-    locationLat: z.number(),
-    locationLng: z.number(),
-    area: z.number().gt(0),
-    carbonAmount: z.number().gt(0),
+    locationPolygon: z.string(),
+    area: z.coerce.number().gt(0),
+    carbonAmount: z.coerce.number().gt(0),
     image: ZFile,
     auditReport: ZFile
 })
@@ -44,10 +42,9 @@ export const ZCreateProjectBody = z.object({
 export const ZUpdateProjectBody = z.object({
     title: z.string().min(3).max(150).optional(),
     description: z.string().min(10).optional(),
-    locationLat: z.number().optional(),
-    locationLng: z.number().optional(),
-    area: z.number().gt(0).optional(),
-    carbonAmount: z.number().gt(0).optional(),
+    locationPolygon: z.string().optional(),
+    area: z.coerce.number().gt(0).optional(),
+    carbonAmount: z.coerce.number().gt(0).optional(),
     contractAddress: z.string().optional(),
     status: ZProjectStatus.optional(),
     image: ZFile.optional(),
@@ -56,6 +53,12 @@ export const ZUpdateProjectBody = z.object({
 
 export const ZProjectWithSupplier = ZProject.extend({
     supplierEmail: z.string().email().optional()
+})
+
+export const ZApprovedRegion = z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    locationPolygon: z.array(z.tuple([z.number(), z.number()]))
 })
 
 export const projectContract = c.router({
@@ -135,6 +138,18 @@ export const projectContract = c.router({
             200: z.array(ZProjectWithSupplier)
         },
         metadata: { ...getSecurityMetadata(), ...getPaginationHeadersMetadata() }
+    },
+    listApprovedRegions: {
+        summary: 'List Approved Regions',
+        path: '/projects/regions',
+        method: 'GET',
+        query: z.object({
+            excludeProjectId: z.string().optional()
+        }),
+        responses: {
+            200: z.array(ZApprovedRegion)
+        },
+        metadata: getSecurityMetadata()
     },
     approve: {
         summary: 'Approve Project (Admin)',

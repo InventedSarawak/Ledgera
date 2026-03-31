@@ -25,6 +25,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { getPolygonCentroid } from '@/lib/utils'
 
 export default function SupplierMarketplacePage() {
     const { toast } = useToast()
@@ -181,7 +182,10 @@ export default function SupplierMarketplacePage() {
                                                 <div>
                                                     <CardTitle className="text-lg">{listing.projectTitle}</CardTitle>
                                                     <CardDescription>
-                                                        {(listing.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} credits @ {listing.priceEth} ETH
+                                                        {(listing.scaledAmount / 1000).toLocaleString(undefined, {
+                                                            maximumFractionDigits: 3
+                                                        })}{' '}
+                                                        credits @ {listing.priceEth} ETH
                                                     </CardDescription>
                                                 </div>
                                                 <Badge variant={listing.active ? 'default' : 'secondary'}>
@@ -194,7 +198,8 @@ export default function SupplierMarketplacePage() {
                                                 <div>
                                                     <p className="text-muted-foreground">Total Value</p>
                                                     <p className="font-bold text-lg">
-                                                        {((listing.scaledAmount / 1000) * listing.priceEth).toFixed(4)} ETH
+                                                        {((listing.scaledAmount / 1000) * listing.priceEth).toFixed(4)}{' '}
+                                                        ETH
                                                     </p>
                                                 </div>
                                                 <div>
@@ -389,7 +394,9 @@ export default function SupplierMarketplacePage() {
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <p className="text-xs text-muted-foreground">Credits Listed</p>
                                                 <p className="text-xl font-bold">
-                                                    {(selectedListing.scaledAmount / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })}
+                                                    {(selectedListing.scaledAmount / 1000).toLocaleString(undefined, {
+                                                        maximumFractionDigits: 3
+                                                    })}
                                                 </p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
@@ -399,7 +406,11 @@ export default function SupplierMarketplacePage() {
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <p className="text-xs text-muted-foreground">Total Value</p>
                                                 <p className="text-xl font-bold">
-                                                    {((selectedListing.scaledAmount / 1000) * selectedListing.priceEth).toFixed(4)} ETH
+                                                    {(
+                                                        (selectedListing.scaledAmount / 1000) *
+                                                        selectedListing.priceEth
+                                                    ).toFixed(4)}{' '}
+                                                    ETH
                                                 </p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
@@ -493,8 +504,13 @@ export default function SupplierMarketplacePage() {
                                                         <div className="flex items-center gap-2">
                                                             <MapPin className="h-3 w-3 text-purple-600" />
                                                             <span className="text-xs">
-                                                                {project.locationLat.toFixed(4)},{' '}
-                                                                {project.locationLng.toFixed(4)}
+                                                                {getPolygonCentroid(
+                                                                    project.locationPolygon
+                                                                ).lat.toFixed(4)}
+                                                                ,{' '}
+                                                                {getPolygonCentroid(
+                                                                    project.locationPolygon
+                                                                ).lng.toFixed(4)}
                                                             </span>
                                                         </div>
                                                     </div>

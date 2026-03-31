@@ -7,7 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { listMarketplaceListings } from '@/lib/api/marketplace'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Filter, ChevronLeft, ChevronRight, ShoppingCart, Store, Leaf, Users, Lock, ArrowRight } from 'lucide-react'
+import {
+    Search,
+    Filter,
+    ChevronLeft,
+    ChevronRight,
+    ShoppingCart,
+    Store,
+    Leaf,
+    Users,
+    Lock,
+    ArrowRight
+} from 'lucide-react'
 import { useState } from 'react'
 import { SignInButton } from '@clerk/nextjs'
 
@@ -123,9 +134,7 @@ export function PublicMarketplace() {
                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-12 text-center">
                             <Leaf className="mx-auto h-12 w-12 text-slate-300" />
                             <p className="text-slate-500 text-lg mt-4">No active listings found</p>
-                            <p className="text-sm text-slate-400 mt-2">
-                                Check back later for new opportunities
-                            </p>
+                            <p className="text-sm text-slate-400 mt-2">Check back later for new opportunities</p>
                         </div>
                     ) : (
                         <>
@@ -206,17 +215,13 @@ export function PublicMarketplace() {
             {/* Bottom CTA */}
             <section className="px-4 py-16 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-900 to-slate-800">
                 <div className="mx-auto max-w-3xl text-center">
-                    <h2 className="text-3xl font-bold text-white sm:text-4xl">
-                        Ready to make an impact?
-                    </h2>
+                    <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to make an impact?</h2>
                     <p className="mt-4 text-lg text-slate-300">
                         Join Ledgera today and start trading verified carbon credits on the blockchain.
                     </p>
                     <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
                         <SignInButton mode="modal">
-                            <Button
-                                size="lg"
-                                className="gap-2 bg-green-600 hover:bg-green-700 text-base px-8 py-6">
+                            <Button size="lg" className="gap-2 bg-green-600 hover:bg-green-700 text-base px-8 py-6">
                                 <ShoppingCart className="h-5 w-5" />
                                 Start Buying
                             </Button>
@@ -237,9 +242,7 @@ export function PublicMarketplace() {
             {/* Footer */}
             <footer className="border-t border-slate-200 bg-white px-4 py-8 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-7xl text-center">
-                    <p className="text-sm text-slate-500">
-                        © {new Date().getFullYear()} Ledgera. All rights reserved.
-                    </p>
+                    <p className="text-sm text-slate-500">© {new Date().getFullYear()} Ledgera. All rights reserved.</p>
                 </div>
             </footer>
         </div>

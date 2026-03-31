@@ -2,12 +2,41 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/inventedsarawak/ledgera/internal/model/project"
 	"github.com/inventedsarawak/ledgera/internal/server"
 	"github.com/jackc/pgx/v5"
 )
+
+type geojsonPolygon struct {
+	Type        string         `json:"type"`
+	Coordinates [][][2]float64 `json:"coordinates"`
+}
+
+func encodePolygon(coords [][2]float64) string {
+	if len(coords) == 0 {
+		return `{"type":"Polygon","coordinates":[]}`
+	}
+	geo := geojsonPolygon{
+		Type:        "Polygon",
+		Coordinates: [][][2]float64{coords},
+	}
+	b, _ := json.Marshal(geo)
+	return string(b)
+}
+
+func decodePolygon(data []byte) [][2]float64 {
+	if len(data) == 0 {
+		return nil
+	}
+	var geo geojsonPolygon
+	if err := json.Unmarshal(data, &geo); err == nil && len(geo.Coordinates) > 0 {
+		return geo.Coordinates[0]
+	}
+	return nil
+}
 
 type ProjectRepository struct {
 	s *server.Server
@@ -22,15 +51,15 @@ func (r *ProjectRepository) Create(ctx context.Context, p project.Project) (*pro
 	query := `
         INSERT INTO projects (
             title, description, image_url, audit_report_url,
-            location_lat, location_lng, area,
+            location_polygon, area,
             carbon_amount_total, price_per_tonne,
             supplier_id, token_symbol, status, created_at, updated_at
         ) VALUES (
             @title, @description, @image_url, @audit_report_url,
-            @location_lat, @location_lng, @area,
+            ST_GeomFromGeoJSON(@location_polygon), @area,
             @carbon_amount_total, @price_per_tonne,
             @supplier_id, @token_symbol, @status, NOW(), NOW()
-        ) RETURNING id, created_at, updated_at
+        ) RETURNING id, location_lat, location_lng, created_at, updated_at
     `
 
 	args := pgx.NamedArgs{
@@ -38,8 +67,7 @@ func (r *ProjectRepository) Create(ctx context.Context, p project.Project) (*pro
 		"description":         p.Description,
 		"image_url":           p.ImageURL,
 		"audit_report_url":    p.AuditReportURL, // New Field
-		"location_lat":        p.LocationLat,
-		"location_lng":        p.LocationLng,
+		"location_polygon":    encodePolygon(p.LocationPolygon),
 		"area":                p.Area,
 		"carbon_amount_total": p.CarbonAmount,
 		"price_per_tonne":     p.PricePerTonne,
@@ -48,11 +76,12 @@ func (r *ProjectRepository) Create(ctx context.Context, p project.Project) (*pro
 		"status":              p.Status,
 	}
 
-	err := r.s.DB.Pool.QueryRow(ctx, query, args).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
+	err := r.s.DB.Pool.QueryRow(ctx, query, args).Scan(&p.ID, &p.Latitude, &p.Longitude, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 
+	// We can refetch or just return what we have. It will be queried later to get lat/long
 	return &p, nil
 }
 
@@ -60,7 +89,7 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id string) (*project.P
 	query := `
         SELECT 
             id, supplier_id, title, description, image_url, audit_report_url,
-            location_lat, location_lng, area, 
+            ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
             contract_address, token_symbol, 
             status, created_at, updated_at
@@ -73,13 +102,17 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id string) (*project.P
 	}
 
 	var p project.Project
+	var locBytes []byte
 	err := r.s.DB.Pool.QueryRow(ctx, query, args).Scan(
 		&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
-		&p.LocationLat, &p.LocationLng, &p.Area,
+		&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 		&p.CarbonAmount, &p.PricePerTonne,
 		&p.ContractAddress, &p.TokenSymbol,
 		&p.Status, &p.CreatedAt, &p.UpdatedAt,
 	)
+	if locBytes != nil {
+		p.LocationPolygon = decodePolygon(locBytes)
+	}
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -103,7 +136,7 @@ func (r *ProjectRepository) ListBySupplierPaginated(ctx context.Context, supplie
 	listQuery := `
         SELECT 
             id, supplier_id, title, description, image_url, audit_report_url,
-            location_lat, location_lng, area, 
+            ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
             contract_address, token_symbol, 
             status, created_at, updated_at
@@ -128,14 +161,18 @@ func (r *ProjectRepository) ListBySupplierPaginated(ctx context.Context, supplie
 	var projects []project.Project
 	for rows.Next() {
 		var p project.Project
+		var locBytes []byte
 		if err := rows.Scan(
 			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
-			&p.LocationLat, &p.LocationLng, &p.Area,
+			&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 			&p.CarbonAmount, &p.PricePerTonne,
 			&p.ContractAddress, &p.TokenSymbol,
 			&p.Status, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if locBytes != nil {
+			p.LocationPolygon = decodePolygon(locBytes)
 		}
 		projects = append(projects, p)
 	}
@@ -162,7 +199,7 @@ func (r *ProjectRepository) ListByStatusPaginated(ctx context.Context, status pr
 	listQuery := `
         SELECT
             id, supplier_id, title, description, image_url, audit_report_url,
-            location_lat, location_lng, area, 
+            ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
             contract_address, token_symbol,
             status, created_at, updated_at
@@ -187,14 +224,18 @@ func (r *ProjectRepository) ListByStatusPaginated(ctx context.Context, status pr
 	var projects []project.Project
 	for rows.Next() {
 		var p project.Project
+		var locBytes []byte
 		if err := rows.Scan(
 			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
-			&p.LocationLat, &p.LocationLng, &p.Area,
+			&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 			&p.CarbonAmount, &p.PricePerTonne,
 			&p.ContractAddress, &p.TokenSymbol,
 			&p.Status, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if locBytes != nil {
+			p.LocationPolygon = decodePolygon(locBytes)
 		}
 		projects = append(projects, p)
 	}
@@ -214,7 +255,7 @@ func (r *ProjectRepository) ListBySupplier(ctx context.Context, supplierID strin
 	query := `
         SELECT 
             id, supplier_id, title, description, image_url, audit_report_url,
-            location_lat, location_lng, area, 
+            ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
             contract_address, token_symbol, 
             status, created_at, updated_at
@@ -238,15 +279,19 @@ func (r *ProjectRepository) ListBySupplier(ctx context.Context, supplierID strin
 	var projects []project.Project = []project.Project{}
 	for rows.Next() {
 		var p project.Project
+		var locBytes []byte
 		err := rows.Scan(
 			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
-			&p.LocationLat, &p.LocationLng, &p.Area,
+			&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 			&p.CarbonAmount, &p.PricePerTonne,
 			&p.ContractAddress, &p.TokenSymbol,
 			&p.Status, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
+		}
+		if locBytes != nil {
+			p.LocationPolygon = decodePolygon(locBytes)
 		}
 		projects = append(projects, p)
 	}
@@ -262,8 +307,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
             description = COALESCE(@description, description),
             image_url = COALESCE(@image_url, image_url),
             audit_report_url = COALESCE(@audit_report_url, audit_report_url),
-            location_lat = COALESCE(@location_lat, location_lat),
-            location_lng = COALESCE(@location_lng, location_lng),
+            location_polygon = COALESCE(ST_GeomFromGeoJSON(@location_polygon), location_polygon),
             area = COALESCE(@area, area),
             carbon_amount_total = COALESCE(@carbon_amount_total, carbon_amount_total),
             contract_address = COALESCE(@contract_address, contract_address),
@@ -273,11 +317,17 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
         WHERE id = @id
         RETURNING 
             id, supplier_id, title, description, image_url, audit_report_url,
-            location_lat, location_lng, area, 
+            ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
             contract_address, token_symbol,
             status, created_at, updated_at
     `
+
+	var locPol *string
+	if payload.LocationPolygon != nil {
+		encoded := encodePolygon(*payload.LocationPolygon)
+		locPol = &encoded
+	}
 
 	args := pgx.NamedArgs{
 		"id":                  id,
@@ -285,8 +335,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
 		"description":         payload.Description,
 		"image_url":           imageURL,
 		"audit_report_url":    auditReportURL, // New Arg
-		"location_lat":        payload.LocationLat,
-		"location_lng":        payload.LocationLng,
+		"location_polygon":    locPol,
 		"area":                payload.Area,
 		"carbon_amount_total": payload.CarbonAmount,
 		"contract_address":    payload.ContractAddress,
@@ -295,13 +344,17 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
 	}
 
 	var p project.Project
+	var locBytes []byte
 	err := r.s.DB.Pool.QueryRow(ctx, query, args).Scan(
 		&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
-		&p.LocationLat, &p.LocationLng, &p.Area,
+		&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 		&p.CarbonAmount, &p.PricePerTonne,
 		&p.ContractAddress, &p.TokenSymbol,
 		&p.Status, &p.CreatedAt, &p.UpdatedAt,
 	)
+	if locBytes != nil {
+		p.LocationPolygon = decodePolygon(locBytes)
+	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -331,7 +384,7 @@ func (r *ProjectRepository) UpdateStatus(ctx context.Context, id string, status 
         WHERE id = @id
         RETURNING 
             id, supplier_id, title, description, image_url, audit_report_url,
-            location_lat, location_lng, area, 
+            ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
             contract_address, token_symbol,
             status, created_at, updated_at
@@ -343,13 +396,18 @@ func (r *ProjectRepository) UpdateStatus(ctx context.Context, id string, status 
 	}
 
 	var p project.Project
+	var locBytes []byte
 	err := r.s.DB.Pool.QueryRow(ctx, query, args).Scan(
 		&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
-		&p.LocationLat, &p.LocationLng, &p.Area,
+		&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 		&p.CarbonAmount, &p.PricePerTonne,
 		&p.ContractAddress, &p.TokenSymbol,
 		&p.Status, &p.CreatedAt, &p.UpdatedAt,
 	)
+
+	if locBytes != nil {
+		p.LocationPolygon = decodePolygon(locBytes)
+	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -357,4 +415,81 @@ func (r *ProjectRepository) UpdateStatus(ctx context.Context, id string, status 
 		return nil, err
 	}
 	return &p, nil
+}
+
+// CheckOverlap returns true if the provided polygon overlaps with any existing project that is APPROVED or DEPLOYED.
+// We exclude the current project ID (if provided) to allow updates to a project's own shape without it conflicting with itself.
+func (r *ProjectRepository) CheckOverlap(ctx context.Context, polygon [][2]float64, excludeProjectID *string) (bool, error) {
+	if len(polygon) == 0 {
+		return false, nil
+	}
+
+	query := `
+		SELECT EXISTS (
+			SELECT 1 
+			FROM projects
+			WHERE status IN ('APPROVED', 'DEPLOYED')
+			AND ST_Intersects(location_polygon, ST_GeomFromGeoJSON(@location_polygon))
+			`
+
+	args := pgx.NamedArgs{
+		"location_polygon": encodePolygon(polygon),
+	}
+
+	if excludeProjectID != nil && *excludeProjectID != "" {
+		query += ` AND id != @exclude_id`
+		args["exclude_id"] = *excludeProjectID
+	}
+	query += `)`
+
+	var exists bool
+	err := r.s.DB.Pool.QueryRow(ctx, query, args).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// ProjectRegion is a lightweight struct for returning just the polygon data of approved/deployed projects.
+type ProjectRegion struct {
+	ID              string       `json:"id"`
+	Title           string       `json:"title"`
+	LocationPolygon [][2]float64 `json:"locationPolygon"`
+}
+
+// ListApprovedRegions returns the polygons of all APPROVED or DEPLOYED projects for map overlay display.
+func (r *ProjectRepository) ListApprovedRegions(ctx context.Context, excludeProjectID *string) ([]ProjectRegion, error) {
+	query := `
+		SELECT id, title, ST_AsGeoJSON(location_polygon)
+		FROM projects
+		WHERE status IN ('APPROVED', 'DEPLOYED')
+	`
+	args := pgx.NamedArgs{}
+
+	if excludeProjectID != nil && *excludeProjectID != "" {
+		query += ` AND id != @exclude_id`
+		args["exclude_id"] = *excludeProjectID
+	}
+
+	rows, err := r.s.DB.Pool.Query(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var regions []ProjectRegion = []ProjectRegion{}
+	for rows.Next() {
+		var r ProjectRegion
+		var locBytes []byte
+		if err := rows.Scan(&r.ID, &r.Title, &locBytes); err != nil {
+			return nil, err
+		}
+		if locBytes != nil {
+			r.LocationPolygon = decodePolygon(locBytes)
+		}
+		regions = append(regions, r)
+	}
+
+	return regions, nil
 }

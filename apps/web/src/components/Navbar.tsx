@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+import { SignedOut, SignInButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Menu, X, ShoppingCart, Store } from 'lucide-react'
 
@@ -62,7 +62,7 @@ export default function Navbar() {
                             className="block rounded-md px-3 py-2 text-base font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                             onClick={() => setMobileMenuOpen(false)}>
                             Dashboard
-                            </Link>
+                        </Link>
                     </div>
                     <div className="border-t border-slate-200 px-4 pb-3 pt-4">
                         <SignedOut>

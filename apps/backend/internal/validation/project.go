@@ -6,12 +6,11 @@ import (
 )
 
 type CreateProjectRequest struct {
-	Title        string  `json:"title" form:"title" validate:"required,min=3,max=150"`
-	Description  string  `json:"description" form:"description" validate:"required,min=10"`
-	LocationLat  float64 `json:"locationLat" form:"locationLat" validate:"required,latitude"`
-	LocationLng  float64 `json:"locationLng" form:"locationLng" validate:"required,longitude"`
-	Area         float64 `json:"area" form:"area" validate:"required,gt=0"`
-	CarbonAmount float64 `json:"carbonAmount" form:"carbonAmount" validate:"required,gt=0"`
+	Title           string  `json:"title" form:"title" validate:"required,min=3,max=150"`
+	Description     string  `json:"description" form:"description" validate:"required,min=10"`
+	LocationPolygon string  `json:"locationPolygon" form:"locationPolygon" validate:"required"`
+	Area            float64 `json:"area" form:"area" validate:"required,gt=0"`
+	CarbonAmount    float64 `json:"carbonAmount" form:"carbonAmount" validate:"required,gt=0"`
 }
 
 func (r *CreateProjectRequest) Validate() error {
@@ -61,8 +60,7 @@ type UpdateProjectRequest struct {
 	ID              uuid.UUID `param:"id" validate:"required,uuid"`
 	Title           *string   `json:"title" form:"title" validate:"omitempty,min=3,max=150"`
 	Description     *string   `json:"description" form:"description" validate:"omitempty,min=10"`
-	LocationLat     *float64  `json:"locationLat" form:"locationLat" validate:"omitempty,latitude"`
-	LocationLng     *float64  `json:"locationLng" form:"locationLng" validate:"omitempty,longitude"`
+	LocationPolygon *string   `json:"locationPolygon" form:"locationPolygon" validate:"omitempty"`
 	ContractAddress *string   `json:"contractAddress" form:"contractAddress" validate:"omitempty,eth_addr"`
 	Area            *float64  `json:"area" form:"area" validate:"omitempty,gt=0"`
 	Status          *string   `json:"status" form:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`

@@ -24,9 +24,10 @@ func FuzzEthToWei(f *testing.F) {
 		weiResult := ethToWei(amount)
 		assert.NotNil(t, weiResult)
 
-		if amount == 0.0 {
+		switch amount {
+		case 0.0:
 			assert.Equal(t, int64(0), weiResult.Int64(), "0 ETH should be 0 Wei")
-		} else if amount == 1.0 {
+		case 1.0:
 			// 1 ETH = 1e18 Wei
 			expected, _ := new(big.Int).SetString("1000000000000000000", 10)
 			assert.Equal(t, 0, weiResult.Cmp(expected), "1 ETH should equal 1e18 wei")

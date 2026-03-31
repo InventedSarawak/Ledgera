@@ -89,11 +89,7 @@ export function downloadRetirementCertificatePDF(cert: CertificateWithDetails) {
     // Amount retired - big number
     ctx.fillStyle = '#16a34a'
     ctx.font = 'bold 120px Georgia, serif'
-    ctx.fillText(
-        `${unscaledAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })}`,
-        width / 2,
-        580
-    )
+    ctx.fillText(`${unscaledAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })}`, width / 2, 580)
 
     ctx.fillStyle = '#475569'
     ctx.font = '36px Georgia, serif'

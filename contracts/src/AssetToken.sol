@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC1155} from '@openzeppelin/contracts/token/ERC1155/ERC1155.sol';
-import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
+import { ERC1155 } from '@openzeppelin/contracts/token/ERC1155/ERC1155.sol';
+import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 
 /**
  * @title AssetToken
@@ -54,11 +54,7 @@ contract AssetToken is ERC1155, Ownable {
     );
 
     // ── Constructor ─────────────────────────────────────────────────────
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        address initialOwner
-    ) ERC1155('') Ownable(initialOwner) {
+    constructor(string memory _name, string memory _symbol, address initialOwner) ERC1155('') Ownable(initialOwner) {
         name = _name;
         symbol = _symbol;
     }
@@ -98,12 +94,9 @@ contract AssetToken is ERC1155, Ownable {
         address buyer
     ) external onlyOwner returns (uint256 newLotId) {
         LotMetadata storage source = lotDetails[sourceLotId];
-        // require(source.isAbleToBuy, 'Lot not for sale'); // Removed: Handled by off-chain backend
+        require(source.isAbleToBuy, 'Lot not for sale');
         require(source.amount >= scaledAmount, 'Insufficient lot balance');
-        require(
-            balanceOf(source.currentOwner, sourceLotId) >= scaledAmount,
-            'Owner balance mismatch'
-        );
+        require(balanceOf(source.currentOwner, sourceLotId) >= scaledAmount, 'Owner balance mismatch');
         require(scaledAmount > 0, 'Amount must be > 0');
 
         address previousOwner = source.currentOwner;
@@ -130,13 +123,7 @@ contract AssetToken is ERC1155, Ownable {
             parentLotId: sourceLotId
         });
 
-        emit CertificateGenerated(
-            newLotId,
-            previousOwner,
-            buyer,
-            scaledAmount,
-            block.timestamp
-        );
+        emit CertificateGenerated(newLotId, previousOwner, buyer, scaledAmount, block.timestamp);
 
         return newLotId;
     }
@@ -183,14 +170,7 @@ contract AssetToken is ERC1155, Ownable {
         )
     {
         LotMetadata storage lot = lotDetails[lotId];
-        return (
-            lot.originalProject,
-            lot.amount,
-            lot.pricePerUnit,
-            lot.isAbleToBuy,
-            lot.currentOwner,
-            lot.parentLotId
-        );
+        return (lot.originalProject, lot.amount, lot.pricePerUnit, lot.isAbleToBuy, lot.currentOwner, lot.parentLotId);
     }
 
     /// @notice Retire (burn) credits from a lot — permanently offsets emissions.
@@ -208,10 +188,7 @@ contract AssetToken is ERC1155, Ownable {
         LotMetadata storage lot = lotDetails[lotId];
         require(lot.currentOwner == ownerAddr, 'Not lot owner');
         require(lot.amount >= scaledAmount, 'Insufficient lot balance');
-        require(
-            balanceOf(ownerAddr, lotId) >= scaledAmount,
-            'Owner balance mismatch'
-        );
+        require(balanceOf(ownerAddr, lotId) >= scaledAmount, 'Owner balance mismatch');
         require(scaledAmount > 0, 'Amount must be > 0');
 
         // Burn the tokens
@@ -223,12 +200,6 @@ contract AssetToken is ERC1155, Ownable {
             lot.isAbleToBuy = false;
         }
 
-        emit CreditsRetired(
-            lotId,
-            ownerAddr,
-            scaledAmount,
-            reason,
-            block.timestamp
-        );
+        emit CreditsRetired(lotId, ownerAddr, scaledAmount, reason, block.timestamp);
     }
 }

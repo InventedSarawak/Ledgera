@@ -15,13 +15,6 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/components/ui/select'
 import { Leaf, Loader2, Flame, Award, Download, ChevronLeft, ChevronRight, AlertTriangle, FileText } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getBuyerPurchases, retireCredits, listRetirements, listMarketplaceListings } from '@/lib/api/marketplace'
@@ -160,7 +153,11 @@ export default function BuyerRetirePage() {
 
     const handleRetire = () => {
         if (!selectedHolding || !retireAmount) {
-            toast({ title: 'Missing fields', description: 'Select a holding and enter an amount', variant: 'destructive' })
+            toast({
+                title: 'Missing fields',
+                description: 'Select a holding and enter an amount',
+                variant: 'destructive'
+            })
             return
         }
         const amount = parseFloat(retireAmount)
@@ -274,10 +271,17 @@ export default function BuyerRetirePage() {
                                                 </Badge>
                                             </div>
                                             <p className="text-sm text-muted-foreground">
-                                                {holding.availableAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })} credits available
+                                                {holding.availableAmount.toLocaleString(undefined, {
+                                                    maximumFractionDigits: 3
+                                                })}{' '}
+                                                credits available
                                                 {holding.retiredAmount > 0 && (
                                                     <span className="text-orange-500 ml-1">
-                                                        ({holding.retiredAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })} already retired)
+                                                        (
+                                                        {holding.retiredAmount.toLocaleString(undefined, {
+                                                            maximumFractionDigits: 3
+                                                        })}{' '}
+                                                        already retired)
                                                     </span>
                                                 )}
                                             </p>
@@ -318,7 +322,9 @@ export default function BuyerRetirePage() {
                         ) : retirements.length === 0 ? (
                             <div className="text-center py-12 space-y-3">
                                 <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-                                <p className="text-muted-foreground">No retirements yet. Retire credits above to start.</p>
+                                <p className="text-muted-foreground">
+                                    No retirements yet. Retire credits above to start.
+                                </p>
                             </div>
                         ) : (
                             <>
@@ -343,8 +349,7 @@ export default function BuyerRetirePage() {
                                                     {cert.amountRetired.toLocaleString(undefined, {
                                                         maximumFractionDigits: 3
                                                     })}{' '}
-                                                    tonnes CO₂ •{' '}
-                                                    {new Date(cert.createdAt).toLocaleDateString()}
+                                                    tonnes CO₂ • {new Date(cert.createdAt).toLocaleDateString()}
                                                 </p>
                                                 {cert.retirementReason && (
                                                     <p className="text-xs text-muted-foreground italic">
@@ -382,9 +387,7 @@ export default function BuyerRetirePage() {
                                         <Button
                                             variant="outline"
                                             size="icon"
-                                            onClick={() =>
-                                                setHistoryPage((p) => Math.min(totalRetirementPages, p + 1))
-                                            }
+                                            onClick={() => setHistoryPage((p) => Math.min(totalRetirementPages, p + 1))}
                                             disabled={historyPage === totalRetirementPages}>
                                             <ChevronRight className="h-4 w-4" />
                                         </Button>
@@ -419,10 +422,16 @@ export default function BuyerRetirePage() {
                                     </div>
                                     <p className="text-sm text-muted-foreground">
                                         Lot #{selectedHolding.tokenId} •{' '}
-                                        {selectedHolding.availableAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })} credits available
+                                        {selectedHolding.availableAmount.toLocaleString(undefined, {
+                                            maximumFractionDigits: 3
+                                        })}{' '}
+                                        credits available
                                         {selectedHolding.retiredAmount > 0 && (
                                             <span className="text-orange-500 block text-xs mt-0.5">
-                                                {selectedHolding.retiredAmount.toLocaleString(undefined, { maximumFractionDigits: 3 })} already retired from this lot
+                                                {selectedHolding.retiredAmount.toLocaleString(undefined, {
+                                                    maximumFractionDigits: 3
+                                                })}{' '}
+                                                already retired from this lot
                                             </span>
                                         )}
                                     </p>
@@ -431,8 +440,8 @@ export default function BuyerRetirePage() {
                                 <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
                                     <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                                     <p className="text-sm text-destructive">
-                                        Retired credits are permanently burned on the blockchain and cannot be
-                                        recovered or resold. You will receive a certificate of retirement.
+                                        Retired credits are permanently burned on the blockchain and cannot be recovered
+                                        or resold. You will receive a certificate of retirement.
                                     </p>
                                 </div>
 

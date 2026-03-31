@@ -3,8 +3,7 @@ export interface Project {
     supplierId: string
     title: string
     description: string
-    locationLat: number
-    locationLng: number
+    locationPolygon: [number, number][]
     area: number
     imageUrl: string
     auditReportUrl?: string

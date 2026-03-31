@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Pagination } from '@/components/ui/pagination'
 import Image from 'next/image'
+import { getPolygonCentroid } from '@/lib/utils'
 
 interface PendingProjectsResponse {
     projects: Project[]
@@ -195,11 +196,11 @@ export function AdminDashboard() {
                                             </div>
                                             <div>
                                                 <span className="font-medium text-foreground">Latitude:</span>{' '}
-                                                {project.locationLat}
+                                                {getPolygonCentroid(project.locationPolygon).lat.toFixed(4)}
                                             </div>
                                             <div>
                                                 <span className="font-medium text-foreground">Longitude:</span>{' '}
-                                                {project.locationLng}
+                                                {getPolygonCentroid(project.locationPolygon).lng.toFixed(4)}
                                             </div>
                                             <div>
                                                 <span className="font-medium text-foreground">Carbon Amount:</span>{' '}

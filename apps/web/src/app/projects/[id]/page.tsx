@@ -136,6 +136,7 @@ export default function ProjectDetailPage() {
 
         createListingMutation.mutate({
             projectId,
+            tokenId: 1, // Defaulting to 1 for standard ERC1155 base token ID, assuming backend assigns or we send 1
             amount: parseFloat(amount),
             priceEth: parseFloat(priceEth)
         })
@@ -319,14 +320,14 @@ export default function ProjectDetailPage() {
                                         key={listing.id}
                                         className="flex items-center justify-between p-4 border rounded-lg">
                                         <div>
-                                            <p className="font-semibold">{listing.amount} Credits</p>
+                                            <p className="font-semibold">{listing.scaledAmount} Credits</p>
                                             <p className="text-sm text-muted-foreground">
                                                 @ {listing.priceEth} ETH each
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <p className="font-bold text-lg">
-                                                {(listing.amount * listing.priceEth).toFixed(4)} ETH
+                                                {(listing.scaledAmount * listing.priceEth).toFixed(4)} ETH
                                             </p>
                                             <Badge variant={listing.active ? 'default' : 'secondary'}>
                                                 {listing.active ? 'Active' : 'Sold'}

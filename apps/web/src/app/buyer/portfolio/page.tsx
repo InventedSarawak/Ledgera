@@ -14,9 +14,25 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog'
-import { Leaf, DollarSign, Package, Loader2, ShoppingBag, Tag, Wallet, AlertTriangle, ExternalLink, Award } from 'lucide-react'
+import {
+    Leaf,
+    DollarSign,
+    Package,
+    Loader2,
+    ShoppingBag,
+    Tag,
+    Wallet,
+    AlertTriangle,
+    ExternalLink,
+    Award
+} from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBuyerPurchases, createMarketplaceListing, listMarketplaceListings, listRetirements } from '@/lib/api/marketplace'
+import {
+    getBuyerPurchases,
+    createMarketplaceListing,
+    listMarketplaceListings,
+    listRetirements
+} from '@/lib/api/marketplace'
 import { PurchaseWithDetails } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/hooks/use-wallet'
