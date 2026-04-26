@@ -100,13 +100,13 @@ export default function BuyerTransactionsPage() {
                                             {/* Price per credit */}
                                             <div>
                                                 <span className="md:hidden text-xs text-muted-foreground">Price: </span>
-                                                <span>{tx.priceEth} ETH</span>
+                                                <span>{tx.priceEth} SOL</span>
                                             </div>
 
                                             {/* Total */}
                                             <div>
                                                 <span className="md:hidden text-xs text-muted-foreground">Total: </span>
-                                                <span className="font-semibold">{tx.totalEth.toFixed(6)} ETH</span>
+                                                <span className="font-semibold">{tx.totalEth.toFixed(6)} SOL</span>
                                             </div>
 
                                             {/* Tx Hash */}

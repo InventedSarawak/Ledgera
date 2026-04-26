@@ -22,8 +22,6 @@ import {
     ShoppingBag,
     Tag,
     Wallet,
-    AlertTriangle,
-    ExternalLink,
     Award
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -36,6 +34,7 @@ import {
 import { PurchaseWithDetails } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/hooks/use-wallet'
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { useState, useMemo, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { CertificateDialog } from '@/components/marketplace/CertificateDialog'
@@ -59,9 +58,8 @@ export default function BuyerPortfolioPage() {
     const { toast } = useToast()
     const { userId } = useAuth()
     const queryClient = useQueryClient()
-    const { walletAddress, hasMetaMask, isConnecting, connectWallet } = useWallet()
+    const { walletAddress, isConnected, solBalance } = useWallet()
     const [sellDialogOpen, setSellDialogOpen] = useState(false)
-    const [walletDialogOpen, setWalletDialogOpen] = useState(false)
     const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null)
     const [sellAmount, setSellAmount] = useState('')
     const [sellPrice, setSellPrice] = useState('')
@@ -101,12 +99,11 @@ export default function BuyerPortfolioPage() {
         onError: (error: Error & { response?: { data?: { message?: string } } }) => {
             const msg = error.response?.data?.message || ''
             // If backend says wallet not connected, prompt user to connect
-            if (msg.toLowerCase().includes('connect your wallet')) {
+            if (msg.toLowerCase().includes('connect your wallet') && false) {
                 setSellDialogOpen(false)
-                setWalletDialogOpen(true)
                 toast({
                     title: 'Wallet Not Synced',
-                    description: 'Please connect your MetaMask wallet to list credits.',
+                    description: 'Please connect your Solana wallet to list credits.',
                     variant: 'destructive'
                 })
                 return
@@ -191,7 +188,11 @@ export default function BuyerPortfolioPage() {
     const handleOpenSellDialog = (holding: Holding) => {
         // Check wallet connection before opening sell dialog
         if (!walletAddress) {
-            setWalletDialogOpen(true)
+            toast({
+                title: 'Wallet Not Connected',
+                description: 'Please connect your Solana wallet first.',
+                variant: 'destructive'
+            })
             return
         }
         setSelectedHolding(holding)
@@ -231,12 +232,7 @@ export default function BuyerPortfolioPage() {
         })
     }, [selectedHolding, sellAmount, sellPrice, toast, createListingMutation])
 
-    const handleConnectFromDialog = useCallback(async () => {
-        const address = await connectWallet()
-        if (address) {
-            setWalletDialogOpen(false)
-        }
-    }, [connectWallet])
+
 
     return (
         <DashboardLayout>
@@ -248,25 +244,20 @@ export default function BuyerPortfolioPage() {
                         <p className="text-muted-foreground">Track your carbon credit holdings and trade tokens</p>
                     </div>
 
-                    {walletAddress ? (
+                    {isConnected && walletAddress ? (
                         <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm">
                             <Wallet className="h-4 w-4 text-green-600" />
                             <span>
                                 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                             </span>
+                            {solBalance !== null && (
+                                <span className="text-muted-foreground ml-1">
+                                    ({solBalance.toFixed(4)} SOL)
+                                </span>
+                            )}
                         </div>
                     ) : (
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                if (hasMetaMask) connectWallet()
-                                else setWalletDialogOpen(true)
-                            }}
-                            disabled={isConnecting}
-                            className="gap-2">
-                            <Wallet className="h-4 w-4" />
-                            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-                        </Button>
+                        <WalletMultiButton />
                     )}
                 </div>
 
@@ -293,7 +284,7 @@ export default function BuyerPortfolioPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-bold">{totalSpent.toFixed(6)} ETH</p>
+                            <p className="text-3xl font-bold">{totalSpent.toFixed(6)} SOL</p>
                             <p className="text-xs text-muted-foreground mt-1">Total Investment</p>
                         </CardContent>
                     </Card>
@@ -378,7 +369,7 @@ export default function BuyerPortfolioPage() {
                                         <div className="flex flex-col items-end gap-2">
                                             <div className="text-right">
                                                 <p className="text-2xl font-bold">
-                                                    {holding.totalSpentEth.toFixed(6)} ETH
+                                                    {holding.totalSpentEth.toFixed(6)} SOL
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">Total Invested</p>
                                             </div>
@@ -459,7 +450,7 @@ export default function BuyerPortfolioPage() {
                                                 Credits
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                @ {tx.priceEth} ETH = {tx.totalEth.toFixed(6)} ETH
+                                                @ {tx.priceEth} SOL = {tx.totalEth.toFixed(6)} SOL
                                             </p>
                                         </div>
                                     </div>
@@ -531,7 +522,7 @@ export default function BuyerPortfolioPage() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="sell-price">Price per Credit (ETH)</Label>
+                                    <Label htmlFor="sell-price">Price per Credit (SOL)</Label>
                                     <Input
                                         id="sell-price"
                                         type="number"
@@ -548,7 +539,7 @@ export default function BuyerPortfolioPage() {
                                     <div className="p-4 bg-muted rounded-lg">
                                         <p className="text-sm text-muted-foreground">Total Listing Value</p>
                                         <p className="text-2xl font-bold">
-                                            {(parseFloat(sellAmount) * parseFloat(sellPrice)).toFixed(6)} ETH
+                                            {(parseFloat(sellAmount) * parseFloat(sellPrice)).toFixed(6)} SOL
                                         </p>
                                     </div>
                                 )}
@@ -566,59 +557,7 @@ export default function BuyerPortfolioPage() {
                     </DialogContent>
                 </Dialog>
 
-                {/* Wallet Connection Dialog */}
-                <Dialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                                Wallet Not Connected
-                            </DialogTitle>
-                            <DialogDescription>
-                                You need to connect your MetaMask wallet before you can list credits for sale.
-                            </DialogDescription>
-                        </DialogHeader>
 
-                        <div className="space-y-4 py-2">
-                            {!hasMetaMask ? (
-                                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg space-y-3">
-                                    <p className="font-semibold text-sm">MetaMask Not Detected</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Please install the MetaMask browser extension to interact with the blockchain.
-                                    </p>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2"
-                                        onClick={() => window.open('https://metamask.io/download/', '_blank')}>
-                                        <ExternalLink className="h-3 w-3" />
-                                        Install MetaMask
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="p-4 bg-muted rounded-lg space-y-2">
-                                    <p className="font-semibold text-sm">Connect Your Wallet</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Click the button below to connect your MetaMask wallet. Your wallet address will
-                                        be saved so buyers can send you ETH.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setWalletDialogOpen(false)}>
-                                Cancel
-                            </Button>
-                            {hasMetaMask && (
-                                <Button onClick={handleConnectFromDialog} disabled={isConnecting} className="gap-2">
-                                    <Wallet className="h-4 w-4" />
-                                    {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
-                                </Button>
-                            )}
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
             </div>
 
             <CertificateDialog

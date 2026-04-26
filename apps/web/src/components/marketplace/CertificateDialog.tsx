@@ -13,7 +13,7 @@ interface CertificateDialogProps {
 export function CertificateDialog({ open, onOpenChange, purchase }: CertificateDialogProps) {
     if (!purchase) return null
 
-    const explorerUrl = `https://sepolia.etherscan.io/tx/${purchase.txHash}`
+    const explorerUrl = `https://explorer.solana.com/tx/${purchase.txHash}?cluster=devnet`
     const unscaledAmount = purchase.scaledAmount / 1000
 
     return (
@@ -56,7 +56,7 @@ export function CertificateDialog({ open, onOpenChange, purchase }: CertificateD
                                     <div className="mt-1 flex items-center gap-2">
                                         <Badge variant="outline">{purchase.tokenSymbol}</Badge>
                                         <Badge variant="secondary" className="font-mono">
-                                            ERC-1155
+                                            Solana SPL
                                         </Badge>
                                     </div>
                                 )}
@@ -105,7 +105,7 @@ export function CertificateDialog({ open, onOpenChange, purchase }: CertificateD
 
                 <div className="flex justify-center mt-4">
                     <Button variant="outline" className="gap-2" onClick={() => window.open(explorerUrl, '_blank')}>
-                        <ExternalLink className="h-4 w-4" /> View on Etherscan
+                        <ExternalLink className="h-4 w-4" /> View on Solana Explorer
                     </Button>
                 </div>
             </DialogContent>
