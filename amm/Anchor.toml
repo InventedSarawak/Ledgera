@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-amm = "G8cXCN5nvLkYjPKQNL63ydwtbbbMrsqSMzu6BkRvDKqH"
+amm = "DeyadoL7B9j4NocYubjLa9rZL8WoehcmPoatnDJcMsYE"
 
 [provider]
 cluster = "localnet"

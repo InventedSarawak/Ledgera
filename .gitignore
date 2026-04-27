@@ -51,10 +51,13 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-
 tsconfig.tsbuildinfo
 .env
 .turbo
 .vscode
 
+# Binary
 ledgera
+
+# Solana Build Outputs
+test-ledger/

@@ -7,7 +7,7 @@ use anchor_lang::solana_program::{
 };
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-declare_id!("G8cXCN5nvLkYjPKQNL63ydwtbbbMrsqSMzu6BkRvDKqH");
+declare_id!("DeyadoL7B9j4NocYubjLa9rZL8WoehcmPoatnDJcMsYE");
 
 #[program]
 pub mod amm {

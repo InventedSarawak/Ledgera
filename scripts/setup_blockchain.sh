@@ -1,6 +1,17 @@
 #!/bin/bash
 set -e
 
+# --- CLEANUP TRAP ---
+# This function runs automatically when the script exits or you press Ctrl+C
+cleanup() {
+    echo -e "\nShutting down Solana test validator and cleaning up..."
+    pkill -f solana-test-validator || true
+    pkill -f solana-faucet || true
+    echo "Cleanup complete. Goodbye!"
+}
+trap cleanup EXIT INT TERM
+# --------------------
+
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
 SOLANA_SBF_SDK="$HOME/.local/share/solana/install/active_release/sdk/sbf"
@@ -17,11 +28,16 @@ cd amm
 anchor build
 cd ..
 
+# Ensure ports are clear before starting a new validator
+pkill -f solana-test-validator || true
+pkill -f solana-faucet || true
+sleep 1
+
 echo "Starting solana-test-validator in background..."
-pkill solana-test-validator || true
 solana-test-validator --reset --quiet &
 VALIDATOR_PID=$!
 
+echo "Waiting for validator to boot..."
 sleep 5
 
 echo "Deploying AMM program..."
@@ -60,7 +76,5 @@ else
     sed -i "s/LEDGERA_BLOCKCHAIN\.GERON_MINT=\".*\"/LEDGERA_BLOCKCHAIN.GERON_MINT=\"$geron_mint\"/" $env_file
 fi
 
-echo "Environment updated."
+echo "Environment updated! (Press Ctrl+C to stop the validator and exit)"
 wait $VALIDATOR_PID
-
-
