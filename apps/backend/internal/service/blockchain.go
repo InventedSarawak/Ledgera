@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"math/big"
+	"math"
 	"strings"
 
 	"github.com/inventedsarawak/ledgera/internal/blockchain"
@@ -58,26 +58,14 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 		return fmt.Errorf("project already deployed")
 	}
 
-	// 3. Generate token name and symbol
-	tokenName := fmt.Sprintf("%s Carbon Credit", proj.Title)
-	tokenSymbol := s.generateTokenSymbol(proj.Title)
-
-	logger.Info().
-		Str("token_name", tokenName).
-		Str("token_symbol", tokenSymbol).
-		Msg("creating token via AssetRegistry")
-
-	// 4. Deploy token via blockchain client
-	tokenAddress, err := s.client.DeployProjectToken(ctx.Request().Context(), tokenName, tokenSymbol)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to deploy token")
-		return fmt.Errorf("failed to deploy token: %w", err)
-	}
+	// 3. The Solana migration uses one unified EON mint for all projects.
+	tokenAddress := s.client.EonMint.String()
+	tokenSymbol := "EON"
 
 	logger.Info().
 		Str("token_address", tokenAddress).
 		Str("project_id", projectID).
-		Msg("token deployed successfully")
+		Msg("project linked to unified EON mint")
 
 	// 5. Update project in database
 	payload := project.UpdateProjectPayload{
@@ -95,7 +83,7 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 		Str("project_id", projectID).
 		Str("contract_address", tokenAddress).
 		Str("token_symbol", tokenSymbol).
-		Msg("project deployed successfully")
+		Msg("project deployment record updated successfully")
 
 	return nil
 }
@@ -138,17 +126,11 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 
 	recipientAddress := *supplier.WalletAddress
 
-	// Scale the amount by 1000 for ERC-1155 smart contract logic
-	scaledAmountStr := fmt.Sprintf("%.0f", unscaledAmount*1000)
-	scaledAmountBig, ok := new(big.Int).SetString(scaledAmountStr, 10)
-	if !ok {
-		return fmt.Errorf("failed to parse scaled amount as big.Int")
-	}
-
-	// 4. Mint tokens via blockchain client (MintInitialSupply -> TokenID 0)
-	err = s.client.MintInitialSupply(ctx, *proj.ContractAddress, recipientAddress, scaledAmountBig)
+	// 4. Mint the unified EON supply to the supplier wallet.
+	scaledAmount := uint64(math.Round(unscaledAmount * 1000))
+	err = s.client.MintEONTokens(ctx, recipientAddress, scaledAmount)
 	if err != nil {
-		return fmt.Errorf("failed to mint tokens: %w", err)
+		return fmt.Errorf("failed to mint EON tokens: %w", err)
 	}
 
 	return nil

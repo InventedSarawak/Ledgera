@@ -1,21 +1,23 @@
 services:
-    postgres:
+    ledgera-postgres-2:
         image: postgis/postgis:15-3.3-alpine
         restart: always
+        container_name: ledgera-postgres-2
         environment:
             POSTGRES_USER: ledgera_user
             POSTGRES_PASSWORD: ledgera_password
             POSTGRES_DB: ledgera_db
         ports:
-            - '5432:5432'
+            - '5433:5432'
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - postgres_data_2:/var/lib/postgresql/data
 
-    redis:
+    ledgera-redis-2:
         image: redis:7-alpine
         restart: always
+        container_name: ledgera-redis-2
         ports:
-            - '6379:6379'
+            - '6380:6379'
 
 volumes:
-    postgres_data:
+    postgres_data_2:

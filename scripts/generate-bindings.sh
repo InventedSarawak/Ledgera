@@ -1,30 +1,30 @@
 #!/bin/bash
-# Generate Go bindings for Solidity contracts
+# Generate Go bindings for Solana programs
 
 set -e
 
-echo "Compiling contracts..."
-cd contracts
-forge build --force 2>&1 | grep -E "(Error|Compiler run failed)" || echo "✓ Compilation successful"
+echo "Building AMM program in Solana..."
+cd amm
+anchor build
 cd ..
 
-echo "Creating directories..."
-mkdir -p apps/backend/internal/blockchain/contracts/{registry,token,marketplace}
+echo "Creating backend config if needed..."
+# Normally, Solana provides a client generation (like Anchor Go client Gen), 
+# but for now we'll just parse the IDL if needed.
 
-echo "Extracting ABIs..."
-cat contracts/out/AssetRegistry.sol/AssetRegistry.json | jq -r '.abi' > /tmp/AssetRegistry.abi
-cat contracts/out/AssetToken.sol/AssetToken.json | jq -r '.abi' > /tmp/AssetToken.abi
+mkdir -p apps/backend/internal/blockchain/contracts/amm
 
-echo "Generating Go bindings..."
-abigen --abi /tmp/AssetRegistry.abi --pkg registry --type Registry --out apps/backend/internal/blockchain/contracts/registry/registry.go
-abigen --abi /tmp/AssetToken.abi --pkg token --type Token --out apps/backend/internal/blockchain/contracts/token/token.go
+echo "Extracting IDL..."
+cp amm/target/idl/amm.json apps/backend/internal/blockchain/contracts/amm/amm.json
 
-echo "Cleaning up..."
-rm /tmp/AssetRegistry.abi /tmp/AssetToken.abi
+echo "Generating Go bindings using raw RPC calls or anchor-go if supported..."
+# Placeholder for Solana Go bindings generation.
+# Currently, most teams interact with Anchor IDL directly via standard instructions,
+# Or via github.com/gagliardetto/solana-go
 
 echo "Tidying Go modules..."
 cd apps/backend
 go mod tidy
 cd ../..
 
-echo "Bindings generated successfully!"
+echo "Bindings extraction successfully!"

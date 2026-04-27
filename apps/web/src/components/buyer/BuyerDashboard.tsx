@@ -44,7 +44,7 @@ export function BuyerDashboard() {
         },
         {
             title: 'Total Spent',
-            value: isLoading ? '...' : `${totalSpentEth.toFixed(4)} SOL`,
+            value: isLoading ? '...' : `${totalSpentEth.toFixed(4)} ETH`,
             description: 'Investment in carbon credits',
             icon: TrendingUp,
             iconColor: 'text-purple-600',
@@ -170,7 +170,7 @@ export function BuyerDashboard() {
                                             })}{' '}
                                             Credits
                                         </p>
-                                        <p className="text-sm text-muted-foreground">{tx.totalEth.toFixed(6)} SOL</p>
+                                        <p className="text-sm text-muted-foreground">{tx.totalEth.toFixed(6)} ETH</p>
                                     </div>
                                 </div>
                             ))}

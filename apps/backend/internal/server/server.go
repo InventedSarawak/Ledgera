@@ -65,7 +65,7 @@ func New(cfg *config.Config, logger *zerolog.Logger, loggerService *loggerPkg.Lo
 	}
 
 	// Initialize blockchain client
-	blockchainClient, err := blockchain.NewClient(cfg.Blockhain)
+	blockchainClient, err := blockchain.NewClient(cfg.Blockchain)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to initialize blockchain client, continuing without blockchain")
 		// Don't fail startup if blockchain is unavailable

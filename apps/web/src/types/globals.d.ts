@@ -1,6 +1,5 @@
 export {}
 
-// Create a type for the Roles
 export type Roles = 'admin' | 'supplier' | 'buyer'
 
 declare global {
@@ -10,3 +9,5 @@ declare global {
         }
     }
 }
+
+declare module '*.css'

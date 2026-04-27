@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	_ "github.com/joho/godotenv/autoload"
+
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/v2"
 	"github.com/rs/zerolog"
@@ -20,7 +21,7 @@ type Config struct {
 	Integration   IntegrationConfig    `koanf:"integration" validate:"required"`
 	Observability *ObservabilityConfig `koanf:"observability"`
 	StorageBucket StorageBucketConfig  `koanf:"storage_bucket" validate:"required"`
-	Blockhain     BlockchainConfig     `koanf:"blockchain" validate:"required"`
+	Blockchain    BlockchainConfig     `koanf:"blockchain" validate:"required"`
 }
 
 type Primary struct {
@@ -59,15 +60,19 @@ type StorageBucketConfig struct {
 }
 
 type BlockchainConfig struct {
-	RpcUrl          string `koanf:"rpc_url" validate:"required,url"`
-	ChainID         int    `koanf:"chain_id" validate:"required"`
-	RegistryAddress string `koanf:"registry_address" validate:"required"`
-	AdminPrivateKey string `koanf:"admin_private_key" validate:"required"`
+	RpcUrl            string `koanf:"rpc_url" validate:"required,url"`
+	ChainID           int    `koanf:"chain_id" validate:"required"`
+	AdminPrivateKey   string `koanf:"admin_private_key"`
+	EonMintAddress    string `koanf:"eon_mint"`
+	SeleneMintAddress string `koanf:"selene_mint"`
+	GeronMintAddress  string `koanf:"geron_mint"`
+	UsdcMintAddress   string `koanf:"usdc_mint"`
 }
 
 type RedisConfig struct {
 	Address string `koanf:"address" validate:"required"`
 }
+
 type AuthConfig struct {
 	SecretKey  string `koanf:"secret_key" validate:"required"`
 	MockUserID string `koanf:"mock_user_id"`

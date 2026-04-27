@@ -1,38 +1,66 @@
 #!/bin/bash
 set -e
 
-# Configuration
-env_file="apps/backend/.env"
-contracts_dir="contracts"
-anvil_port=8545
-rpc_url="http://127.0.0.1:$anvil_port"
-private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
-echo "Deploying AssetRegistry..."
-cd $contracts_dir
-forge script script/AssetRegistry.s.sol --rpc-url $rpc_url --broadcast --private-key $private_key --json > /dev/null
-
-# Get Registry Address from broadcast artifact
-registry_address=$(jq -r '.transactions[0].contractAddress' broadcast/AssetRegistry.s.sol/31337/run-latest.json)
-echo "AssetRegistry deployed at: $registry_address"
-
-
-
-cd ..
-
-# Update .env file
-echo "Updating .env file..."
-
-# Use python to update .env safely orsed
-# Using sed for Linux
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS requires standard extension for -i
-    sed -i '' "s/LEDGERA_BLOCKCHAIN\.REGISTRY_ADDRESS=\".*\"/LEDGERA_BLOCKCHAIN.REGISTRY_ADDRESS=\"$registry_address\"/" $env_file
-else
-    sed -i "s/LEDGERA_BLOCKCHAIN\.REGISTRY_ADDRESS=\".*\"/LEDGERA_BLOCKCHAIN.REGISTRY_ADDRESS=\"$registry_address\"/" $env_file
+SOLANA_SBF_SDK="$HOME/.local/share/solana/install/active_release/sdk/sbf"
+if ! cargo --list | grep -q 'build-sbf' || [ ! -d "$SOLANA_SBF_SDK" ]; then
+    echo "Solana tools incomplete or missing! Installing the official Solana Tool Suite (v1.18.18)..."
+    # sh -c "$(curl -sSfL https://release.solana.com/v1.18.18/install)"
+    export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 fi
 
-echo "Environment updated with new contract addresses."
-echo "Registry: $registry_address"
+env_file="apps/backend/.env"
+
+echo "Building AMM program..."
+cd amm
+anchor build
+cd ..
+
+echo "Starting solana-test-validator in background..."
+pkill solana-test-validator || true
+solana-test-validator --reset --quiet &
+VALIDATOR_PID=$!
+
+sleep 5
+
+echo "Deploying AMM program..."
+cd amm
+anchor deploy
+cd ..
+
+program_id=$(solana address -k amm/target/deploy/amm-keypair.json)
+echo "AMM deployed at: $program_id"
+
+echo "Setting up Tokens..."
+usdc_mint=$(spl-token create-token --decimals 6 | grep "Creating token" | awk '{print $3}')
+eon_mint=$(spl-token create-token --decimals 9 | grep "Creating token" | awk '{print $3}')
+selene_mint=$(spl-token create-token --decimals 9 | grep "Creating token" | awk '{print $3}')
+geron_mint=$(spl-token create-token --decimals 9 | grep "Creating token" | awk '{print $3}')
+
+echo "Updating .env file..."
+
+for var in USDC_MINT EON_MINT SELENE_MINT GERON_MINT AMM_PROGRAM_ID; do
+    if ! grep -q "LEDGERA_BLOCKCHAIN\.$var=" "$env_file"; then
+        echo "LEDGERA_BLOCKCHAIN.$var=\"\"" >> "$env_file"
+    fi
+done
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/LEDGERA_BLOCKCHAIN\.AMM_PROGRAM_ID=\".*\"/LEDGERA_BLOCKCHAIN.AMM_PROGRAM_ID=\"$program_id\"/" $env_file
+    sed -i '' "s/LEDGERA_BLOCKCHAIN\.USDC_MINT=\".*\"/LEDGERA_BLOCKCHAIN.USDC_MINT=\"$usdc_mint\"/" $env_file
+    sed -i '' "s/LEDGERA_BLOCKCHAIN\.EON_MINT=\".*\"/LEDGERA_BLOCKCHAIN.EON_MINT=\"$eon_mint\"/" $env_file
+    sed -i '' "s/LEDGERA_BLOCKCHAIN\.SELENE_MINT=\".*\"/LEDGERA_BLOCKCHAIN.SELENE_MINT=\"$selene_mint\"/" $env_file
+    sed -i '' "s/LEDGERA_BLOCKCHAIN\.GERON_MINT=\".*\"/LEDGERA_BLOCKCHAIN.GERON_MINT=\"$geron_mint\"/" $env_file
+else
+    sed -i "s/LEDGERA_BLOCKCHAIN\.AMM_PROGRAM_ID=\".*\"/LEDGERA_BLOCKCHAIN.AMM_PROGRAM_ID=\"$program_id\"/" $env_file
+    sed -i "s/LEDGERA_BLOCKCHAIN\.USDC_MINT=\".*\"/LEDGERA_BLOCKCHAIN.USDC_MINT=\"$usdc_mint\"/" $env_file
+    sed -i "s/LEDGERA_BLOCKCHAIN\.EON_MINT=\".*\"/LEDGERA_BLOCKCHAIN.EON_MINT=\"$eon_mint\"/" $env_file
+    sed -i "s/LEDGERA_BLOCKCHAIN\.SELENE_MINT=\".*\"/LEDGERA_BLOCKCHAIN.SELENE_MINT=\"$selene_mint\"/" $env_file
+    sed -i "s/LEDGERA_BLOCKCHAIN\.GERON_MINT=\".*\"/LEDGERA_BLOCKCHAIN.GERON_MINT=\"$geron_mint\"/" $env_file
+fi
+
+echo "Environment updated."
+wait $VALIDATOR_PID
 
 

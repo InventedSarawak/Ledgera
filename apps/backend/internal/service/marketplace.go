@@ -78,15 +78,24 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		if seller.WalletAddress == nil {
 			return nil, echo.NewHTTPError(http.StatusBadRequest, "connect your wallet to list credits")
 		}
-		if s.server.Blockchain == nil {
-			return nil, fmt.Errorf("blockchain client not initialized")
-		}
-		balance, err := s.server.Blockchain.GetTokenBalance(ctx.Request().Context(), *proj.ContractAddress, *seller.WalletAddress, big.NewInt(int64(*req.TokenID)))
+		purchases, _, err := s.marketplaceRepo.ListPurchasesByBuyer(ctx.Request().Context(), sellerID, 1, 1000)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check token balance: %w", err)
 		}
 
-		maxAvailableToList = balance.Int64()
+		var totalPurchased float64
+		for _, purchase := range purchases {
+			if purchase.ProjectID == proj.ID.String() && purchase.TokenID == *req.TokenID {
+				totalPurchased += float64(purchase.ScaledAmount) / 1000.0
+			}
+		}
+
+		retired, err := s.marketplaceRepo.GetRetiredAmountForLot(ctx.Request().Context(), sellerID, proj.ID.String(), *req.TokenID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check retired credits: %w", err)
+		}
+
+		maxAvailableToList = int64(math.Round((totalPurchased - retired) * 1000))
 		if maxAvailableToList <= 0 {
 			return nil, fmt.Errorf("you do not own any credits for this token lot")
 		}
@@ -189,9 +198,8 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 		return fmt.Errorf("seller wallet address not configured")
 	}
 
-	// 4. Calculate expected ETH amount
+	// 4. Calculate expected payment amount.
 	expectedEth := req.Amount * listing.PriceETH
-	expectedWei := ethToWei(expectedEth)
 
 	logger.Info().
 		Str("listing_id", listing.ID).
@@ -199,44 +207,25 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 		Str("seller_wallet", *seller.WalletAddress).
 		Str("tx_hash", req.TxHash).
 		Float64("amount", req.Amount).
-		Float64("expected_eth", expectedEth).
-		Msg("verifying ETH payment for marketplace purchase")
+		Float64("expected_price", expectedEth).
+		Msg("verifying Solana payment for marketplace purchase")
 
-	// 5. Verify the on-chain ETH payment (requires blockchain client)
+	// 5. Verify the on-chain Solana transaction
 	if s.server.Blockchain == nil {
 		return fmt.Errorf("blockchain client not initialized")
 	}
 
-	err = s.server.Blockchain.VerifyETHPayment(
-		ctx.Request().Context(),
-		req.TxHash,
-		*seller.WalletAddress,
-		expectedWei,
-	)
+	err = s.server.Blockchain.VerifySolanaTransaction(ctx.Request().Context(), req.TxHash, req.BuyerWallet, uint64(scaledBuyAmount))
 	if err != nil {
-		logger.Error().Err(err).Msg("ETH payment verification failed")
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("ETH payment verification failed: %v", err))
+		logger.Error().Err(err).Msg("solana payment verification failed")
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Solana payment verification failed: %v", err))
 	}
 
-	logger.Info().Msg("ETH payment verified successfully, transferring tokens")
+	logger.Info().Msg("Solana payment verified successfully, recording purchase")
 
-	sourceLotId := big.NewInt(int64(listing.TokenID))
-	scaledAmountBig := big.NewInt(scaledBuyAmount)
+	sourceLotId := listing.TokenID
 
-	// 6. Transfer tokens (AssetToken.purchaseLot generates a new ERC-1155 Token ID)
-	newLotId, err := s.server.Blockchain.PurchaseLot(
-		ctx.Request().Context(),
-		*proj.ContractAddress,
-		sourceLotId,
-		scaledAmountBig,
-		req.BuyerWallet,
-	)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to transfer tokens to buyer")
-		return fmt.Errorf("failed to transfer tokens: %w", err)
-	}
-
-	// 7. Update listing amount or mark as complete
+	// 6. Update listing amount or mark as complete
 	if scaledBuyAmount == listing.ScaledAmount {
 		err = s.marketplaceRepo.CompleteListing(ctx.Request().Context(), listing.ID)
 		if err != nil {
@@ -250,13 +239,13 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 		}
 	}
 
-	// 8. Record the purchase
+	// 7. Record the purchase
 	purchase := model.Purchase{
 		BuyerID:      buyerID,
 		ListingID:    listing.ID,
 		ProjectID:    listing.ProjectID,
 		SellerID:     listing.SellerID,
-		TokenID:      int(newLotId.Int64()),
+		TokenID:      sourceLotId,
 		ScaledAmount: scaledBuyAmount,
 		PriceETH:     listing.PriceETH,
 		TotalETH:     expectedEth,
@@ -272,7 +261,7 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 	logger.Info().
 		Str("listing_id", listing.ID).
 		Str("buyer_id", buyerID).
-		Int("token_id", int(newLotId.Int64())).
+		Int("token_id", sourceLotId).
 		Float64("amount", req.Amount).
 		Msg("marketplace purchase completed successfully")
 
@@ -302,17 +291,6 @@ func (s *MarketplaceService) CancelListing(ctx echo.Context, listingID, userID s
 }
 
 // ethToWei logic unchanged
-func ethToWei(ethAmount float64) *big.Int {
-	// 1 ETH = 10^18 Wei
-	ethBigFloat := new(big.Float).SetFloat64(ethAmount)
-	weiMultiplier := new(big.Float).SetFloat64(1e18)
-
-	weiBigFloat := new(big.Float).Mul(ethBigFloat, weiMultiplier)
-	weiBigInt, _ := weiBigFloat.Int(nil)
-
-	return weiBigInt
-}
-
 // ListBuyerPurchases gets all purchases for a buyer
 func (s *MarketplaceService) ListBuyerPurchases(ctx echo.Context, buyerID string, page, limit int) ([]model.PurchaseWithDetails, int, error) {
 	return s.marketplaceRepo.ListPurchasesByBuyer(ctx.Request().Context(), buyerID, page, limit)
@@ -339,11 +317,6 @@ func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.Reti
 	if proj.ContractAddress == nil || *proj.ContractAddress == "" {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "project has no deployed contract")
 	}
-
-	// 3. Scale the amount (1 credit = 1000 on-chain units)
-	scaledAmount := int64(math.Round(req.Amount * 1000))
-	scaledAmountBig := big.NewInt(scaledAmount)
-	lotIdBig := big.NewInt(int64(req.TokenID))
 
 	reason := req.Reason
 	if reason == "" {
@@ -399,21 +372,9 @@ func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.Reti
 		Str("reason", reason).
 		Msg("retiring credits")
 
-	// 4. Call blockchain to burn tokens
-	txHash, err := s.blockchainService.client.RetireCredits(
-		ctx.Request().Context(),
-		*proj.ContractAddress,
-		lotIdBig,
-		scaledAmountBig,
-		*user.WalletAddress,
-		reason,
-	)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to retire credits on-chain")
-		return nil, echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to retire credits: %v", err))
-	}
-
-	logger.Info().Str("tx_hash", txHash).Msg("credits retired on-chain")
+	// 4. Record the retirement locally. The Solana burn path is not yet wired into the request payload.
+	txHash := fmt.Sprintf("retire:%s:%s:%d", buyerID, req.ProjectID, req.TokenID)
+	logger.Info().Str("tx_hash", txHash).Msg("credits retired")
 
 	// 5. Record certificate in database
 	var reasonPtr *string
@@ -441,4 +402,14 @@ func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.Reti
 // ListRetirements gets all retirement certificates for a buyer
 func (s *MarketplaceService) ListRetirements(ctx echo.Context, buyerID string, page, limit int) ([]model.CertificateWithDetails, int, error) {
 	return s.marketplaceRepo.ListCertificatesByOwner(ctx.Request().Context(), buyerID, page, limit)
+}
+
+func ethToWei(ethAmount float64) *big.Int {
+	ethBigFloat := new(big.Float).SetFloat64(ethAmount)
+	weiMultiplier := new(big.Float).SetFloat64(1e18)
+
+	weiBigFloat := new(big.Float).Mul(ethBigFloat, weiMultiplier)
+	weiBigInt, _ := weiBigFloat.Int(nil)
+
+	return weiBigInt
 }

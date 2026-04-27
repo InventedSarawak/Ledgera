@@ -72,7 +72,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
 
                     <div className="space-y-1">
                         <p className="text-xs text-muted-foreground">Price per Credit</p>
-                        <p className="text-xl font-bold">{listing.priceEth} SOL</p>
+                        <p className="text-xl font-bold">{listing.priceEth} ETH</p>
                     </div>
                 </div>
 
@@ -128,7 +128,7 @@ export function ListingCard({ listing, onBuy, isLoading = false, showBuyButton =
                         onClick={() => onBuy?.(listing.id, buyAmount)}
                         disabled={isLoading || !isValidAmount}>
                         <ShoppingCart className="mr-2 h-4 w-4" />
-                        {isLoading ? 'Processing...' : `Buy ${buyAmount} for ${totalPrice} SOL`}
+                        {isLoading ? 'Processing...' : `Buy ${buyAmount} for ${totalPrice} ETH`}
                     </Button>
                 </CardFooter>
             )}

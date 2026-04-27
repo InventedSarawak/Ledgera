@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import ReactQueryProvider from '../providers/ReactQueryProvider'
 import ClerkProviderWrapper from '../providers/ClerkProvider'
-import { SolanaWalletProvider } from '../providers/SolanaWalletProvider'
+import SolanaProvider from '../providers/SolanaProvider'
 import Navbar from '@/components/Navbar'
 import { AxiosAuthInterceptor } from '@/components/AxiosAuthInterceptor'
 
@@ -31,13 +31,13 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 <ClerkProviderWrapper>
-                    <AxiosAuthInterceptor />
-                    <SolanaWalletProvider>
+                    <SolanaProvider>
+                        <AxiosAuthInterceptor />
                         <ReactQueryProvider>
                             <Navbar />
                             {children}
                         </ReactQueryProvider>
-                    </SolanaWalletProvider>
+                    </SolanaProvider>
                 </ClerkProviderWrapper>
             </body>
         </html>

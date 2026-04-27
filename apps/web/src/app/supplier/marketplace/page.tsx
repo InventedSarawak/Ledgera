@@ -185,7 +185,7 @@ export default function SupplierMarketplacePage() {
                                                         {(listing.scaledAmount / 1000).toLocaleString(undefined, {
                                                             maximumFractionDigits: 3
                                                         })}{' '}
-                                                        credits @ {listing.priceEth} SOL
+                                                        credits @ {listing.priceEth} ETH
                                                     </CardDescription>
                                                 </div>
                                                 <Badge variant={listing.active ? 'default' : 'secondary'}>
@@ -199,7 +199,7 @@ export default function SupplierMarketplacePage() {
                                                     <p className="text-muted-foreground">Total Value</p>
                                                     <p className="font-bold text-lg">
                                                         {((listing.scaledAmount / 1000) * listing.priceEth).toFixed(4)}{' '}
-                                                        SOL
+                                                        ETH
                                                     </p>
                                                 </div>
                                                 <div>
@@ -344,7 +344,7 @@ export default function SupplierMarketplacePage() {
                             </div>
 
                             <div>
-                                <Label htmlFor="price">Price per Credit (SOL)</Label>
+                                <Label htmlFor="price">Price per Credit (ETH)</Label>
                                 <Input
                                     id="price"
                                     type="number"
@@ -359,7 +359,7 @@ export default function SupplierMarketplacePage() {
                                 <div className="p-4 bg-muted rounded-lg">
                                     <p className="text-sm text-muted-foreground">Total Value</p>
                                     <p className="text-2xl font-bold">
-                                        {(parseFloat(amount) * parseFloat(priceEth)).toFixed(4)} SOL
+                                        {(parseFloat(amount) * parseFloat(priceEth)).toFixed(4)} ETH
                                     </p>
                                 </div>
                             )}
@@ -401,7 +401,7 @@ export default function SupplierMarketplacePage() {
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <p className="text-xs text-muted-foreground">Price / Credit</p>
-                                                <p className="text-xl font-bold">{selectedListing.priceEth} SOL</p>
+                                                <p className="text-xl font-bold">{selectedListing.priceEth} ETH</p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
                                                 <p className="text-xs text-muted-foreground">Total Value</p>
@@ -410,7 +410,7 @@ export default function SupplierMarketplacePage() {
                                                         (selectedListing.scaledAmount / 1000) *
                                                         selectedListing.priceEth
                                                     ).toFixed(4)}{' '}
-                                                    SOL
+                                                    ETH
                                                 </p>
                                             </div>
                                             <div className="p-3 bg-muted rounded-lg">
@@ -443,7 +443,7 @@ export default function SupplierMarketplacePage() {
                                                                 Contract
                                                             </span>
                                                             <div className="flex items-center gap-1">
-                                                                <span className="text-xs font-mono truncate max-w-[200px]">
+                                                                <span className="text-xs font-mono truncate max-w-50">
                                                                     {selectedListing.tokenAddress}
                                                                 </span>
                                                                 <Button

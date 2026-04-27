@@ -3,9 +3,9 @@ import { ListingWithDetails, MarketplaceListing, PaginatedResponse } from '@/lib
 
 export interface CreateListingData {
     projectId: string
-    tokenId: number
+    tokenId: string
     amount: number
-    priceEth: number
+    price: number
 }
 
 export interface ListMarketplaceParams {

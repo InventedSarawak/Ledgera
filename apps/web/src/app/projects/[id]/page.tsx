@@ -322,12 +322,12 @@ export default function ProjectDetailPage() {
                                         <div>
                                             <p className="font-semibold">{listing.scaledAmount} Credits</p>
                                             <p className="text-sm text-muted-foreground">
-                                                @ {listing.priceEth} SOL each
+                                                @ {listing.priceEth} ETH each
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <p className="font-bold text-lg">
-                                                {(listing.scaledAmount * listing.priceEth).toFixed(4)} SOL
+                                                {(listing.scaledAmount * listing.priceEth).toFixed(4)} ETH
                                             </p>
                                             <Badge variant={listing.active ? 'default' : 'secondary'}>
                                                 {listing.active ? 'Active' : 'Sold'}
@@ -389,7 +389,7 @@ export default function ProjectDetailPage() {
                             </div>
 
                             <div>
-                                <Label htmlFor="price">Price per Credit (SOL)</Label>
+                                <Label htmlFor="price">Price per Credit (ETH)</Label>
                                 <Input
                                     id="price"
                                     type="number"
@@ -404,7 +404,7 @@ export default function ProjectDetailPage() {
                                 <div className="p-4 bg-muted rounded-lg">
                                     <p className="text-sm text-muted-foreground">Total Value</p>
                                     <p className="text-2xl font-bold">
-                                        {(parseFloat(amount) * parseFloat(priceEth)).toFixed(4)} SOL
+                                        {(parseFloat(amount) * parseFloat(priceEth)).toFixed(4)} ETH
                                     </p>
                                 </div>
                             )}
