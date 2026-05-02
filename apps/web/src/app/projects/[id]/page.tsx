@@ -136,9 +136,9 @@ export default function ProjectDetailPage() {
 
         createListingMutation.mutate({
             projectId,
-            tokenId: 1, // Defaulting to 1 for standard ERC1155 base token ID, assuming backend assigns or we send 1
+            tokenId: "1", // Defaulting to "1" for standard base token ID
             amount: parseFloat(amount),
-            priceEth: parseFloat(priceEth)
+            price: parseFloat(priceEth)
         })
     }
 

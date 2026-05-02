@@ -61,7 +61,7 @@ type StorageBucketConfig struct {
 
 type BlockchainConfig struct {
 	RpcUrl            string `koanf:"rpc_url" validate:"required,url"`
-	ChainID           int    `koanf:"chain_id" validate:"required"`
+	ChainID           string `koanf:"chain_id" validate:"required"`
 	AdminPrivateKey   string `koanf:"admin_private_key"`
 	EonMintAddress    string `koanf:"eon_mint"`
 	SeleneMintAddress string `koanf:"selene_mint"`

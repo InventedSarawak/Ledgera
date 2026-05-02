@@ -120,8 +120,10 @@ func extractValidationErrors(err error) (string, []errs.FieldError) {
 			msg = "must be a valid latitude between -90 and 90"
 		case "longitude":
 			msg = "must be a valid longitude between -180 and 180"
-		case "eth_addr":
-			msg = "must be a valid Ethereum address starting with 0x"
+		case "solana_pubkey":
+			msg = "must be a valid Solana public key (Base58, 32-44 characters)"
+		case "solana_sig":
+			msg = "must be a valid Solana transaction signature (Base58, 64-88 characters)"
 		case "dive":
 			msg = "some items are invalid"
 		default:
@@ -145,4 +147,51 @@ var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4
 
 func IsValidUUID(uuid string) bool {
 	return uuidRegex.MatchString(uuid)
+}
+
+// ---- Solana-specific validators ----
+
+const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+// IsBase58 checks if a string consists only of Base58 characters (Bitcoin alphabet).
+func IsBase58(s string) bool {
+	for _, c := range s {
+		found := false
+		for _, b := range base58Chars {
+			if c == b {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// IsValidSolanaPubkey validates a Solana Base58-encoded public key (32-44 characters).
+func IsValidSolanaPubkey(addr string) bool {
+	return len(addr) >= 32 && len(addr) <= 44 && IsBase58(addr)
+}
+
+// IsValidSolanaSignature validates a Solana Base58-encoded transaction signature (64-88 characters).
+func IsValidSolanaSignature(sig string) bool {
+	return len(sig) >= 64 && len(sig) <= 88 && IsBase58(sig)
+}
+
+// ValidateSolanaPubkey is a go-playground/validator custom func for Solana public keys.
+func ValidateSolanaPubkey(fl validator.FieldLevel) bool {
+	return IsValidSolanaPubkey(fl.Field().String())
+}
+
+// ValidateSolanaSig is a go-playground/validator custom func for Solana transaction signatures.
+func ValidateSolanaSig(fl validator.FieldLevel) bool {
+	return IsValidSolanaSignature(fl.Field().String())
+}
+
+// RegisterSolanaValidators registers all Solana-specific custom validators on a validator instance.
+func RegisterSolanaValidators(v *validator.Validate) {
+	v.RegisterValidation("solana_pubkey", ValidateSolanaPubkey)
+	v.RegisterValidation("solana_sig", ValidateSolanaSig)
 }

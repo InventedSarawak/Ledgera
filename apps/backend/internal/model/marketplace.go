@@ -2,14 +2,15 @@ package model
 
 import "time"
 
-// Listing represents a marketplace listing (lot-based, ERC-1155)
+// Listing represents a marketplace listing (lot-based, SPL token)
 type Listing struct {
 	ID           string    `json:"id" db:"id"`
 	ProjectID    string    `json:"projectId" db:"project_id"`
 	SellerID     string    `json:"sellerId" db:"seller_id"`
-	TokenID      int       `json:"tokenId" db:"token_id"`
+	TokenID      string    `json:"tokenId" db:"token_id"`
 	ScaledAmount int64     `json:"scaledAmount" db:"scaled_amount"`
-	PriceETH     float64   `json:"priceEth" db:"price_eth"`
+	Price        float64   `json:"price" db:"price"`
+	PaymentToken string    `json:"paymentToken" db:"payment_token"`
 	Active       bool      `json:"active" db:"active"`
 	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt    time.Time `json:"updatedAt" db:"updated_at"`
@@ -27,7 +28,7 @@ type ListingWithDetails struct {
 	ProjectDescription  string  `json:"projectDescription" db:"project_description"`
 	ProjectImageURL     string  `json:"projectImageUrl" db:"project_image_url"`
 	SellerEmail         string  `json:"sellerEmail" db:"seller_email"`
-	TokenAddress        *string `json:"tokenAddress" db:"token_address"`
+	MintAddress         *string `json:"mintAddress" db:"mint_address"`
 	TokenSymbol         *string `json:"tokenSymbol" db:"token_symbol"`
 	SellerWalletAddress *string `json:"sellerWalletAddress" db:"seller_wallet_address"`
 }

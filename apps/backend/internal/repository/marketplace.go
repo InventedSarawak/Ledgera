@@ -17,23 +17,24 @@ func NewMarketplaceRepository(db *database.Database) *MarketplaceRepository {
 	return &MarketplaceRepository{db: db}
 }
 
-// CreateListing creates a new marketplace listing (lot-based)
-func (r *MarketplaceRepository) CreateListing(ctx context.Context, projectID, sellerID string, tokenID int, scaledAmount int64, priceETH float64) (*model.Listing, error) {
+// CreateListing creates a new marketplace listing (lot-based, SPL token)
+func (r *MarketplaceRepository) CreateListing(ctx context.Context, projectID, sellerID, tokenID string, scaledAmount int64, price float64, paymentToken string) (*model.Listing, error) {
 	query := `
-		INSERT INTO marketplace_listings (id, project_id, seller_id, token_id, scaled_amount, price_eth, active)
-		VALUES ($1, $2, $3, $4, $5, $6, true)
-		RETURNING id, project_id, seller_id, token_id, scaled_amount, price_eth, active, created_at, updated_at
+		INSERT INTO marketplace_listings (id, project_id, seller_id, token_id, scaled_amount, price, payment_token, active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+		RETURNING id, project_id, seller_id, token_id, scaled_amount, price, payment_token, active, created_at, updated_at
 	`
 
 	id := uuid.New().String()
 	var listing model.Listing
-	err := r.db.Pool.QueryRow(ctx, query, id, projectID, sellerID, tokenID, scaledAmount, priceETH).Scan(
+	err := r.db.Pool.QueryRow(ctx, query, id, projectID, sellerID, tokenID, scaledAmount, price, paymentToken).Scan(
 		&listing.ID,
 		&listing.ProjectID,
 		&listing.SellerID,
 		&listing.TokenID,
 		&listing.ScaledAmount,
-		&listing.PriceETH,
+		&listing.Price,
+		&listing.PaymentToken,
 		&listing.Active,
 		&listing.CreatedAt,
 		&listing.UpdatedAt,
@@ -48,7 +49,7 @@ func (r *MarketplaceRepository) CreateListing(ctx context.Context, projectID, se
 // FindListingByID gets a listing by ID
 func (r *MarketplaceRepository) FindListingByID(ctx context.Context, id string) (*model.Listing, error) {
 	query := `
-		SELECT id, project_id, seller_id, token_id, scaled_amount, price_eth, active, created_at, updated_at
+		SELECT id, project_id, seller_id, token_id, scaled_amount, price, payment_token, active, created_at, updated_at
 		FROM marketplace_listings
 		WHERE id = $1
 	`
@@ -60,7 +61,8 @@ func (r *MarketplaceRepository) FindListingByID(ctx context.Context, id string) 
 		&listing.SellerID,
 		&listing.TokenID,
 		&listing.ScaledAmount,
-		&listing.PriceETH,
+		&listing.Price,
+		&listing.PaymentToken,
 		&listing.Active,
 		&listing.CreatedAt,
 		&listing.UpdatedAt,
@@ -104,8 +106,8 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 	// Data query
 	dataQuery := `
 		SELECT 
-			ml.id, ml.project_id, ml.seller_id, ml.token_id, ml.scaled_amount, ml.price_eth, ml.active, ml.created_at, ml.updated_at,
-			p.title, p.description, p.image_url, u.email, p.contract_address, p.token_symbol, u.wallet_address
+			ml.id, ml.project_id, ml.seller_id, ml.token_id, ml.scaled_amount, ml.price, ml.payment_token, ml.active, ml.created_at, ml.updated_at,
+			p.title, p.description, p.image_url, u.email, p.mint_address, p.token_symbol, u.wallet_address
 		` + baseQuery + `
 		ORDER BY ml.created_at DESC
 		LIMIT $` + fmt.Sprintf("%d", argNum) + ` OFFSET $` + fmt.Sprintf("%d", argNum+1)
@@ -127,7 +129,8 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 			&listing.SellerID,
 			&listing.TokenID,
 			&listing.ScaledAmount,
-			&listing.PriceETH,
+			&listing.Price,
+			&listing.PaymentToken,
 			&listing.Active,
 			&listing.CreatedAt,
 			&listing.UpdatedAt,
@@ -135,7 +138,7 @@ func (r *MarketplaceRepository) ListActiveListings(ctx context.Context, page, li
 			&listing.ProjectDescription,
 			&listing.ProjectImageURL,
 			&listing.SellerEmail,
-			&listing.TokenAddress,
+			&listing.MintAddress,
 			&listing.TokenSymbol,
 			&listing.SellerWalletAddress,
 		)
@@ -206,7 +209,7 @@ func (r *MarketplaceRepository) GetActiveListedAmountScaled(ctx context.Context,
 }
 
 // GetActiveListedAmountScaledForToken (Scaled) returns the total scaled amount currently listed by a seller for a specific token
-func (r *MarketplaceRepository) GetActiveListedAmountScaledForToken(ctx context.Context, sellerID, projectID string, tokenID int) (int64, error) {
+func (r *MarketplaceRepository) GetActiveListedAmountScaledForToken(ctx context.Context, sellerID, projectID string, tokenID string) (int64, error) {
 	query := `
 		SELECT COALESCE(SUM(scaled_amount), 0)
 		FROM marketplace_listings
@@ -242,8 +245,8 @@ func (r *MarketplaceRepository) GetTotalPurchasedAmountScaled(ctx context.Contex
 // RecordPurchase inserts a purchase record
 func (r *MarketplaceRepository) RecordPurchase(ctx context.Context, purchase model.Purchase) (*model.Purchase, error) {
 	query := `
-		INSERT INTO purchases (buyer_id, listing_id, project_id, seller_id, token_id, scaled_amount, price_eth, total_eth, tx_hash)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO purchases (buyer_id, listing_id, project_id, seller_id, token_id, scaled_amount, price, total_price, payment_token, tx_hash)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at
 	`
 
@@ -254,8 +257,9 @@ func (r *MarketplaceRepository) RecordPurchase(ctx context.Context, purchase mod
 		purchase.SellerID,
 		purchase.TokenID,
 		purchase.ScaledAmount,
-		purchase.PriceETH,
-		purchase.TotalETH,
+		purchase.Price,
+		purchase.TotalPrice,
+		purchase.PaymentToken,
 		purchase.TxHash,
 	).Scan(&purchase.ID, &purchase.CreatedAt)
 	if err != nil {
@@ -282,8 +286,8 @@ func (r *MarketplaceRepository) ListPurchasesByBuyer(ctx context.Context, buyerI
 	query := `
 		SELECT 
 			pu.id, pu.buyer_id, pu.listing_id, pu.project_id, pu.seller_id,
-			pu.token_id, pu.scaled_amount, pu.price_eth, pu.total_eth, pu.tx_hash, pu.created_at,
-			p.title, p.token_symbol, p.contract_address
+			pu.token_id, pu.scaled_amount, pu.price, pu.total_price, pu.payment_token, pu.tx_hash, pu.created_at,
+			p.title, p.token_symbol, p.mint_address
 		FROM purchases pu
 		INNER JOIN projects p ON pu.project_id = p.id
 		WHERE pu.buyer_id = $1
@@ -302,8 +306,8 @@ func (r *MarketplaceRepository) ListPurchasesByBuyer(ctx context.Context, buyerI
 		var p model.PurchaseWithDetails
 		err := rows.Scan(
 			&p.ID, &p.BuyerID, &p.ListingID, &p.ProjectID, &p.SellerID,
-			&p.TokenID, &p.ScaledAmount, &p.PriceETH, &p.TotalETH, &p.TxHash, &p.CreatedAt,
-			&p.ProjectTitle, &p.TokenSymbol, &p.TokenAddress,
+			&p.TokenID, &p.ScaledAmount, &p.Price, &p.TotalPrice, &p.PaymentToken, &p.TxHash, &p.CreatedAt,
+			&p.ProjectTitle, &p.TokenSymbol, &p.MintAddress,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan purchase: %w", err)
@@ -315,7 +319,7 @@ func (r *MarketplaceRepository) ListPurchasesByBuyer(ctx context.Context, buyerI
 }
 
 // CreateCertificate creates a new retirement certificate record
-func (r *MarketplaceRepository) CreateCertificate(ctx context.Context, ownerID, projectID string, tokenID int, txHash string, amountRetired float64, reason *string) (*model.Certificate, error) {
+func (r *MarketplaceRepository) CreateCertificate(ctx context.Context, ownerID, projectID string, tokenID string, txHash string, amountRetired float64, reason *string) (*model.Certificate, error) {
 	query := `
 		INSERT INTO certificates (id, owner_id, project_id, token_id, tx_hash, amount_retired, retirement_reason)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -345,7 +349,7 @@ func (r *MarketplaceRepository) ListCertificatesByOwner(ctx context.Context, own
 
 	query := `
 		SELECT c.id, c.owner_id, c.project_id, c.token_id, c.tx_hash, c.amount_retired, c.retirement_reason, c.created_at,
-		       p.title AS project_title, p.token_symbol, p.contract_address AS token_address
+		       p.title AS project_title, p.token_symbol, p.mint_address
 		FROM certificates c
 		JOIN projects p ON p.id = c.project_id
 		WHERE c.owner_id = $1
@@ -363,7 +367,7 @@ func (r *MarketplaceRepository) ListCertificatesByOwner(ctx context.Context, own
 		var c model.CertificateWithDetails
 		err := rows.Scan(
 			&c.ID, &c.OwnerID, &c.ProjectID, &c.TokenID, &c.TxHash, &c.AmountRetired, &c.RetirementReason, &c.CreatedAt,
-			&c.ProjectTitle, &c.TokenSymbol, &c.TokenAddress,
+			&c.ProjectTitle, &c.TokenSymbol, &c.MintAddress,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan certificate: %w", err)
@@ -375,7 +379,7 @@ func (r *MarketplaceRepository) ListCertificatesByOwner(ctx context.Context, own
 }
 
 // GetRetiredAmountForLot returns the total amount already retired by a user for a specific project+tokenId
-func (r *MarketplaceRepository) GetRetiredAmountForLot(ctx context.Context, ownerID string, projectID string, tokenID int) (float64, error) {
+func (r *MarketplaceRepository) GetRetiredAmountForLot(ctx context.Context, ownerID string, projectID string, tokenID string) (float64, error) {
 	query := `SELECT COALESCE(SUM(amount_retired), 0) FROM certificates WHERE owner_id = $1 AND project_id = $2 AND token_id = $3`
 	var total float64
 	err := r.db.Pool.QueryRow(ctx, query, ownerID, projectID, tokenID).Scan(&total)

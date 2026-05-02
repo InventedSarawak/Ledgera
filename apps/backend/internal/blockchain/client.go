@@ -3,8 +3,11 @@ package blockchain
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc/ws"
+	"github.com/gagliardetto/solana-go/programs/associated-token-account"
 	"github.com/gagliardetto/solana-go/programs/token"
 	"github.com/gagliardetto/solana-go/rpc"
 	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
@@ -74,15 +77,29 @@ func (c *Client) MintEONTokens(ctx context.Context, to string, amount uint64) er
 
 	// In a real implementation, we would check if the ATA exists and if not, create it.
 	// For now, we assume the frontend or the backend created it.
-	
+	var insts []solana.Instruction
+
+	_, err = c.RpcClient.GetAccountInfo(ctx, ata)
+	if err != nil {
+		// Most likely rpc.ErrNotFound, meaning the ATA doesn't exist
+		createAtaInst := associatedtokenaccount.NewCreateInstruction(
+			c.AdminKey.PublicKey(),
+			toPubKey,
+			c.EonMint,
+		).Build()
+		insts = append(insts, createAtaInst)
+	}
+
 	// 2. Build the MintTo instruction
-	inst := token.NewMintToInstruction(
+	mintInst := token.NewMintToInstruction(
 		amount,
 		c.EonMint,
 		ata,
 		c.AdminKey.PublicKey(),
 		[]solana.PublicKey{},
 	).Build()
+	
+	insts = append(insts, mintInst)
 
 	// 3. Send transaction
 	recent, err := c.RpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
@@ -91,7 +108,7 @@ func (c *Client) MintEONTokens(ctx context.Context, to string, amount uint64) er
 	}
 
 	tx, err := solana.NewTransaction(
-		[]solana.Instruction{inst},
+		insts,
 		recent.Value.Blockhash,
 		solana.TransactionPayer(c.AdminKey.PublicKey()),
 	)
@@ -111,7 +128,13 @@ func (c *Client) MintEONTokens(ctx context.Context, to string, amount uint64) er
 		return fmt.Errorf("failed to sign tx: %w", err)
 	}
 
-	_, err = confirm.SendAndConfirmTransaction(ctx, c.RpcClient, nil, tx)
+	wsClient, err := ws.Connect(ctx, "ws://127.0.0.1:8900")
+    if err != nil {
+        return fmt.Errorf("failed to connect to websocket: %w", err)
+	}
+	defer wsClient.Close()
+
+	_, err = confirm.SendAndConfirmTransaction(ctx, c.RpcClient, wsClient, tx)
 	if err != nil {
 		return fmt.Errorf("failed to send and confirm tx: %w", err)
 	}
@@ -144,9 +167,72 @@ func (c *Client) VerifySolanaTransaction(ctx context.Context, signature string, 
 		return fmt.Errorf("transaction failed natively on solana cluster")
 	}
 
-	// In a real implementation this would iterate through inner instructions / token balances
-	// checking pre/post balances of the expectedTo associated token account.
-	// For demonstration, we simply verify the transaction was successful.
-	
-	return nil
+	// Verify pre/post balances
+	expectedToPubkey, err := solana.PublicKeyFromBase58(expectedTo)
+	if err != nil {
+		return fmt.Errorf("invalid expectedTo public key: %w", err)
+	}
+
+	// Find the matching account index for expectedTo (or their ATA)
+	// For simplicity, we just look for any token balance change that matches expectedAmount
+	// and belongs to expectedTo.
+	var preAmount, postAmount uint64
+	foundPre := false
+	foundPost := false
+
+	for _, pre := range txDetails.Meta.PreTokenBalances {
+		if pre.Owner != nil && pre.Owner.Equals(expectedToPubkey) {
+			if parsed, err := strconv.ParseUint(pre.UiTokenAmount.Amount, 10, 64); err == nil {
+				preAmount = parsed
+				foundPre = true
+			}
+		}
+	}
+
+	for _, post := range txDetails.Meta.PostTokenBalances {
+		if post.Owner != nil && post.Owner.Equals(expectedToPubkey) {
+			if parsed, err := strconv.ParseUint(post.UiTokenAmount.Amount, 10, 64); err == nil {
+				postAmount = parsed
+				foundPost = true
+			}
+		}
+	}
+
+	// If no pre balance was found, it might have been 0 (account created in tx)
+	if !foundPre {
+		preAmount = 0
+	}
+
+	if foundPost && postAmount >= preAmount+expectedAmount {
+		return nil
+	}
+
+	return fmt.Errorf("expected amount transfer not found in transaction balances (pre: %d, post: %d, expected: %d)", preAmount, postAmount, expectedAmount)
+}
+
+func (c *Client) ReadTokenBalance(ctx context.Context, walletAddress string, mintAddress string) (uint64, error) {
+	walletPubKey, err := solana.PublicKeyFromBase58(walletAddress)
+	if err != nil {
+		return 0, fmt.Errorf("invalid wallet address: %w", err)
+	}
+	mintPubKey, err := solana.PublicKeyFromBase58(mintAddress)
+	if err != nil {
+		return 0, fmt.Errorf("invalid mint address: %w", err)
+	}
+
+	ata, _, err := solana.FindAssociatedTokenAddress(walletPubKey, mintPubKey)
+	if err != nil {
+		return 0, fmt.Errorf("failed to derive ATA: %w", err)
+	}
+
+	balance, err := c.RpcClient.GetTokenAccountBalance(ctx, ata, rpc.CommitmentConfirmed)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get token balance: %w", err)
+	}
+
+	amount, err := strconv.ParseUint(balance.Value.Amount, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse balance amount: %w", err)
+	}
+	return amount, nil
 }

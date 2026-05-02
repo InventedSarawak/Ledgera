@@ -110,9 +110,9 @@ export default function SupplierMarketplacePage() {
 
         createListingMutation.mutate({
             projectId: selectedProject.id,
-            tokenId: parseInt(tokenId, 10),
+            tokenId: tokenId,
             amount: parseFloat(amount),
-            priceEth: parseFloat(priceEth)
+            price: parseFloat(priceEth)
         })
     }
 

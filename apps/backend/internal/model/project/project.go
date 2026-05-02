@@ -26,8 +26,8 @@ type Project struct {
 	CarbonAmount    float64      `json:"carbonAmount" db:"carbon_amount_total"`
 	PricePerTonne   float64      `json:"pricePerTonne" db:"price_per_tonne"`
 
-	ContractAddress *string `json:"contractAddress" db:"contract_address"`
-	TokenSymbol     *string `json:"tokenSymbol" db:"token_symbol"`
+	MintAddress *string `json:"mintAddress" db:"mint_address"` // Solana SPL token mint address (Base58)
+	TokenSymbol *string `json:"tokenSymbol" db:"token_symbol"`
 
 	// Computed by DB (PostGIS centroid) and stored via GENERATED column
 	Latitude  float64 `json:"latitude" db:"location_lat"`

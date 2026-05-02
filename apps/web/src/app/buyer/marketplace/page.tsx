@@ -124,7 +124,7 @@ export default function BuyerMarketplacePage() {
                 }
 
                 toast({
-                    title: 'Confirm in MetaMask',
+                    title: 'Confirm in Wallet',
                     description: `Sending ${formatEther(totalPriceWei)} ETH to seller...`
                 })
 
@@ -154,13 +154,13 @@ export default function BuyerMarketplacePage() {
                 if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
                     toast({
                         title: 'Transaction Cancelled',
-                        description: 'You rejected the transaction in MetaMask',
+                        description: 'You rejected the transaction in your wallet',
                         variant: 'destructive'
                     })
                 } else if ((err.code as number) === -32002) {
                     toast({
-                        title: 'Check MetaMask',
-                        description: 'A transaction request is already pending in MetaMask',
+                        title: 'Check Wallet',
+                        description: 'A transaction request is already pending in your wallet',
                         variant: 'destructive'
                     })
                 } else {
@@ -319,31 +319,31 @@ export default function BuyerMarketplacePage() {
                             Wallet Not Connected
                         </DialogTitle>
                         <DialogDescription>
-                            You need to connect your MetaMask wallet before you can purchase carbon credits.
+                            You need to connect your Solana wallet (like Phantom) before you can purchase carbon credits.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 py-2">
                         {!hasMetaMask ? (
                             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg space-y-3">
-                                <p className="font-semibold text-sm">MetaMask Not Detected</p>
+                                <p className="font-semibold text-sm">Wallet Not Detected</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Please install the MetaMask browser extension to interact with the blockchain.
+                                    Please install a Solana-compatible browser extension (like Phantom) to interact with the blockchain.
                                 </p>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     className="gap-2"
-                                    onClick={() => window.open('https://metamask.io/download/', '_blank')}>
+                                    onClick={() => window.open('https://phantom.app/download', '_blank')}>
                                     <ExternalLink className="h-3 w-3" />
-                                    Install MetaMask
+                                    Install Phantom
                                 </Button>
                             </div>
                         ) : (
                             <div className="p-4 bg-muted rounded-lg space-y-2">
                                 <p className="font-semibold text-sm">Connect Your Wallet</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Click the button below to connect your MetaMask wallet. You&apos;ll be prompted to
+                                    Click the button below to connect your Solana wallet. You&apos;ll be prompted to
                                     approve the connection.
                                 </p>
                             </div>
@@ -362,7 +362,7 @@ export default function BuyerMarketplacePage() {
                         {hasMetaMask && (
                             <Button onClick={handleConnectFromDialog} disabled={isConnecting} className="gap-2">
                                 <Wallet className="h-4 w-4" />
-                                {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
+                                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
                             </Button>
                         )}
                     </DialogFooter>

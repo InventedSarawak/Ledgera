@@ -37,8 +37,8 @@ type UpdateProjectPayload struct {
 	ID              uuid.UUID      `param:"id" validate:"required,uuid"`
 	Title           *string        `json:"title" validate:"omitempty,min=3,max=150"`
 	Description     *string        `json:"description" validate:"omitempty,min=10"`
-	ContractAddress *string        `json:"contractAddress" validate:"omitempty,eth_addr"`
-	TokenSymbol     *string        `json:"tokenSymbol" validate:"omitempty"` // Added TokenSymbol
+	MintAddress     *string        `json:"mintAddress" validate:"omitempty"` // Solana Base58 pubkey; validated via custom validator at handler level
+	TokenSymbol     *string        `json:"tokenSymbol" validate:"omitempty"`
 	LocationPolygon *[][2]float64  `json:"locationPolygon" validate:"omitempty,min=4"`
 	Area            *float64       `json:"area" validate:"omitempty,gt=0"`
 	Status          *ProjectStatus `json:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`

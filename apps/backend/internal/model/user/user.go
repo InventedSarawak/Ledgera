@@ -19,7 +19,7 @@ type User struct {
 
 	ClerkID       string     `json:"clerkId" db:"clerk_id"`
 	Email         string     `json:"email" db:"email"`
-	WalletAddress *string    `json:"walletAddress" db:"wallet_address"`
+	WalletAddress *string    `json:"walletAddress" db:"wallet_address"` // Solana Base58 public key (max 44 chars)
 	Role          UserRole   `json:"role" db:"role"`
 	DeletedAt     *time.Time `json:"deletedAt" db:"deleted_at"`
 }

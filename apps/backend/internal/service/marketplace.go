@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"net/http"
 
 	"github.com/inventedsarawak/ledgera/internal/middleware"
@@ -57,13 +56,13 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 	}
 
 	if req.TokenID == nil {
-		zero := 0
+		zero := "0"
 		req.TokenID = &zero
 	}
 
 	var maxAvailableToList int64
 
-	if *req.TokenID == 0 {
+	if *req.TokenID == "0" {
 		// Initial listing from supplier
 		if proj.SupplierID != sellerID {
 			return nil, fmt.Errorf("only the project supplier can create initial listings (Token ID 0)")
@@ -99,11 +98,6 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		if maxAvailableToList <= 0 {
 			return nil, fmt.Errorf("you do not own any credits for this token lot")
 		}
-
-		// Also notify the smart contract that this lot is for sale? No, wait:
-		// We list on-chain when the buyer makes a purchase. But Ledgera MVP only required off-chain listing!
-		// Actually, in `AssetToken.sol`, `purchaseLot` requires `source.isAbleToBuy == true`.
-		// The smart contract has a `listForSale(lotId, pricePerUnit)` function!
 	}
 
 	// Calculate scaled amounts (1 credit = 1000 units)
@@ -127,7 +121,8 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		sellerID,
 		*req.TokenID,
 		scaledAmountToAdd,
-		req.PriceETH,
+		req.Price,
+		req.PaymentToken,
 	)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create listing in database")
@@ -138,8 +133,9 @@ func (s *MarketplaceService) CreateListing(ctx echo.Context, req validation.Crea
 		Str("listing_id", listing.ID).
 		Str("project_id", req.ProjectID).
 		Float64("amount", req.Amount).
-		Float64("price_eth", req.PriceETH).
-		Int("token_id", *req.TokenID).
+		Float64("price", req.Price).
+		Str("token_id", *req.TokenID).
+		Str("payment_token", req.PaymentToken).
 		Msg("marketplace listing created successfully")
 
 	return listing, nil
@@ -155,7 +151,7 @@ func (s *MarketplaceService) GetListing(ctx echo.Context, listingID string) (*mo
 	return s.marketplaceRepo.FindListingByID(ctx.Request().Context(), listingID)
 }
 
-// BuyListing handles purchasing a listing with on-chain verification
+// BuyListing handles purchasing a listing with on-chain Solana verification
 func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyListingRequest, buyerID string) error {
 	logger := middleware.GetLogger(ctx)
 
@@ -185,8 +181,8 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 	if err != nil {
 		return fmt.Errorf("failed to fetch project: %w", err)
 	}
-	if proj == nil || proj.ContractAddress == nil {
-		return fmt.Errorf("project or contract address not found")
+	if proj == nil || proj.MintAddress == nil {
+		return fmt.Errorf("project or mint address not found")
 	}
 
 	// 3. Fetch seller details to get their wallet address
@@ -199,7 +195,7 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 	}
 
 	// 4. Calculate expected payment amount.
-	expectedEth := req.Amount * listing.PriceETH
+	expectedPrice := req.Amount * listing.Price
 
 	logger.Info().
 		Str("listing_id", listing.ID).
@@ -207,7 +203,8 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 		Str("seller_wallet", *seller.WalletAddress).
 		Str("tx_hash", req.TxHash).
 		Float64("amount", req.Amount).
-		Float64("expected_price", expectedEth).
+		Float64("expected_price", expectedPrice).
+		Str("payment_token", listing.PaymentToken).
 		Msg("verifying Solana payment for marketplace purchase")
 
 	// 5. Verify the on-chain Solana transaction
@@ -247,8 +244,9 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 		SellerID:     listing.SellerID,
 		TokenID:      sourceLotId,
 		ScaledAmount: scaledBuyAmount,
-		PriceETH:     listing.PriceETH,
-		TotalETH:     expectedEth,
+		Price:        listing.Price,
+		TotalPrice:   expectedPrice,
+		PaymentToken: listing.PaymentToken,
 		TxHash:       req.TxHash,
 	}
 
@@ -261,7 +259,7 @@ func (s *MarketplaceService) BuyListing(ctx echo.Context, req validation.BuyList
 	logger.Info().
 		Str("listing_id", listing.ID).
 		Str("buyer_id", buyerID).
-		Int("token_id", sourceLotId).
+		Str("token_id", sourceLotId).
 		Float64("amount", req.Amount).
 		Msg("marketplace purchase completed successfully")
 
@@ -290,7 +288,6 @@ func (s *MarketplaceService) CancelListing(ctx echo.Context, listingID, userID s
 	return s.marketplaceRepo.CancelListing(ctx.Request().Context(), listingID)
 }
 
-// ethToWei logic unchanged
 // ListBuyerPurchases gets all purchases for a buyer
 func (s *MarketplaceService) ListBuyerPurchases(ctx echo.Context, buyerID string, page, limit int) ([]model.PurchaseWithDetails, int, error) {
 	return s.marketplaceRepo.ListPurchasesByBuyer(ctx.Request().Context(), buyerID, page, limit)
@@ -309,13 +306,13 @@ func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.Reti
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "connect your wallet first")
 	}
 
-	// 2. Fetch project to get contract address
+	// 2. Fetch project to get mint address
 	proj, err := s.projectRepo.FindByID(ctx.Request().Context(), req.ProjectID)
 	if err != nil || proj == nil {
 		return nil, echo.NewHTTPError(http.StatusNotFound, "project not found")
 	}
-	if proj.ContractAddress == nil || *proj.ContractAddress == "" {
-		return nil, echo.NewHTTPError(http.StatusBadRequest, "project has no deployed contract")
+	if proj.MintAddress == nil || *proj.MintAddress == "" {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "project has no deployed mint address")
 	}
 
 	reason := req.Reason
@@ -367,13 +364,13 @@ func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.Reti
 
 	logger.Info().
 		Str("project_id", req.ProjectID).
-		Int("token_id", req.TokenID).
+		Str("token_id", req.TokenID).
 		Float64("amount", req.Amount).
 		Str("reason", reason).
 		Msg("retiring credits")
 
 	// 4. Record the retirement locally. The Solana burn path is not yet wired into the request payload.
-	txHash := fmt.Sprintf("retire:%s:%s:%d", buyerID, req.ProjectID, req.TokenID)
+	txHash := fmt.Sprintf("retire:%s:%s:%s", buyerID, req.ProjectID, req.TokenID)
 	logger.Info().Str("tx_hash", txHash).Msg("credits retired")
 
 	// 5. Record certificate in database
@@ -402,14 +399,4 @@ func (s *MarketplaceService) RetireCredits(ctx echo.Context, req validation.Reti
 // ListRetirements gets all retirement certificates for a buyer
 func (s *MarketplaceService) ListRetirements(ctx echo.Context, buyerID string, page, limit int) ([]model.CertificateWithDetails, int, error) {
 	return s.marketplaceRepo.ListCertificatesByOwner(ctx.Request().Context(), buyerID, page, limit)
-}
-
-func ethToWei(ethAmount float64) *big.Int {
-	ethBigFloat := new(big.Float).SetFloat64(ethAmount)
-	weiMultiplier := new(big.Float).SetFloat64(1e18)
-
-	weiBigFloat := new(big.Float).Mul(ethBigFloat, weiMultiplier)
-	weiBigInt, _ := weiBigFloat.Int(nil)
-
-	return weiBigInt
 }

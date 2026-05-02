@@ -8,28 +8,34 @@ import (
 // Marketplace Listing Validation
 // ============================================================================
 
+// SupportedPaymentTokens lists the accepted SPL token symbols for payment
+var SupportedPaymentTokens = []string{"USDC", "EON", "SELENE", "GERON"}
+
 type CreateListingRequest struct {
-	ProjectID string  `json:"projectId" validate:"required,uuid"`
-	TokenID   *int    `json:"tokenId" validate:"required,min=0"`
-	Amount    float64 `json:"amount" validate:"required,gt=0"`
-	PriceETH  float64 `json:"priceEth" validate:"required,gt=0"`
+	ProjectID    string  `json:"projectId" validate:"required,uuid"`
+	TokenID      *string `json:"tokenId" validate:"omitempty"` // Solana mint address (Base58) or "0" for initial supply
+	Amount       float64 `json:"amount" validate:"required,gt=0"`
+	Price        float64 `json:"price" validate:"required,gt=0"`
+	PaymentToken string  `json:"paymentToken" validate:"required,oneof=USDC EON SELENE GERON"`
 }
 
 func (r *CreateListingRequest) Validate() error {
 	validate := validator.New()
+	RegisterSolanaValidators(validate)
 	return validate.Struct(r)
 }
 
 type BuyListingRequest struct {
 	ListingID   string  `json:"listingId" param:"id" validate:"required,uuid"`
-	TxHash      string  `json:"txHash" validate:"required"`
-	BuyerWallet string  `json:"buyerWallet" validate:"required"`
+	TxHash      string  `json:"txHash" validate:"required,solana_sig"`
+	BuyerWallet string  `json:"buyerWallet" validate:"required,solana_pubkey"`
 	Amount      float64 `json:"amount" validate:"required,gt=0"`
-	SourceLotID *int    `json:"sourceLotId" validate:"omitempty,min=0"`
+	SourceLotID *string `json:"sourceLotId" validate:"omitempty"`
 }
 
 func (r *BuyListingRequest) Validate() error {
 	validate := validator.New()
+	RegisterSolanaValidators(validate)
 	return validate.Struct(r)
 }
 
@@ -93,7 +99,7 @@ func (r *DeployProjectTokenRequest) Validate() error {
 
 type RetireCreditsRequest struct {
 	ProjectID string  `json:"projectId" validate:"required,uuid"`
-	TokenID   int     `json:"tokenId" validate:"min=0"`
+	TokenID   string  `json:"tokenId"` // Solana mint address (Base58)
 	Amount    float64 `json:"amount" validate:"required,gt=0"`
 	Reason    string  `json:"reason" validate:"omitempty,max=500"`
 }

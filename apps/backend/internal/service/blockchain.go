@@ -54,7 +54,7 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 		return fmt.Errorf("only approved projects can be deployed")
 	}
 
-	if proj.ContractAddress != nil && *proj.ContractAddress != "" {
+	if proj.MintAddress != nil && *proj.MintAddress != "" {
 		return fmt.Errorf("project already deployed")
 	}
 
@@ -69,8 +69,8 @@ func (s *BlockchainService) DeployProject(ctx echo.Context, projectID string) er
 
 	// 5. Update project in database
 	payload := project.UpdateProjectPayload{
-		ContractAddress: &tokenAddress,
-		TokenSymbol:     &tokenSymbol,
+		MintAddress: &tokenAddress,
+		TokenSymbol: &tokenSymbol,
 	}
 
 	_, err = s.projectRepo.Update(ctx.Request().Context(), projectID, payload, nil, nil)
@@ -108,8 +108,8 @@ func (s *BlockchainService) MintProjectTokens(ctx context.Context, projectID str
 		return fmt.Errorf("project must be approved or deployed to mint tokens")
 	}
 
-	if proj.ContractAddress == nil || *proj.ContractAddress == "" {
-		return fmt.Errorf("project has no contract address")
+	if proj.MintAddress == nil || *proj.MintAddress == "" {
+		return fmt.Errorf("project has no mint address")
 	}
 
 	// 3. Get supplier's wallet address

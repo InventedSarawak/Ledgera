@@ -106,7 +106,7 @@ export default function BuyerPortfolioPage() {
                 setWalletDialogOpen(true)
                 toast({
                     title: 'Wallet Not Synced',
-                    description: 'Please connect your MetaMask wallet to list credits.',
+                    description: 'Please connect your Solana wallet to list credits.',
                     variant: 'destructive'
                 })
                 return
@@ -225,9 +225,9 @@ export default function BuyerPortfolioPage() {
         }
         createListingMutation.mutate({
             projectId: selectedHolding.projectId,
-            tokenId: selectedHolding.tokenId,
+            tokenId: selectedHolding.tokenId.toString(),
             amount,
-            priceEth: price
+            price: price
         })
     }, [selectedHolding, sellAmount, sellPrice, toast, createListingMutation])
 
@@ -575,32 +575,32 @@ export default function BuyerPortfolioPage() {
                                 Wallet Not Connected
                             </DialogTitle>
                             <DialogDescription>
-                                You need to connect your MetaMask wallet before you can list credits for sale.
+                                You need to connect your Solana wallet before you can list credits for sale.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-4 py-2">
                             {!hasMetaMask ? (
                                 <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg space-y-3">
-                                    <p className="font-semibold text-sm">MetaMask Not Detected</p>
+                                    <p className="font-semibold text-sm">Wallet Not Detected</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Please install the MetaMask browser extension to interact with the blockchain.
+                                        Please install a Solana wallet (like Phantom) to interact with the blockchain.
                                     </p>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         className="gap-2"
-                                        onClick={() => window.open('https://metamask.io/download/', '_blank')}>
+                                        onClick={() => window.open('https://phantom.app/', '_blank')}>
                                         <ExternalLink className="h-3 w-3" />
-                                        Install MetaMask
+                                        Install Phantom
                                     </Button>
                                 </div>
                             ) : (
                                 <div className="p-4 bg-muted rounded-lg space-y-2">
                                     <p className="font-semibold text-sm">Connect Your Wallet</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Click the button below to connect your MetaMask wallet. Your wallet address will
-                                        be saved so buyers can send you ETH.
+                                        Click the button below to connect your Solana wallet. Your wallet address will
+                                        be saved so buyers can send you funds.
                                     </p>
                                 </div>
                             )}
@@ -613,7 +613,7 @@ export default function BuyerPortfolioPage() {
                             {hasMetaMask && (
                                 <Button onClick={handleConnectFromDialog} disabled={isConnecting} className="gap-2">
                                     <Wallet className="h-4 w-4" />
-                                    {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
+                                    {isConnecting ? 'Connecting...' : 'Connect Wallet'}
                                 </Button>
                             )}
                         </DialogFooter>

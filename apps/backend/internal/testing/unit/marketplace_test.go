@@ -29,10 +29,11 @@ func TestMarketplace_CreateListing(t *testing.T) {
 
 	// Create listing payload
 	payload := map[string]interface{}{
-		"projectId": projectID,
-		"tokenId":   0,
-		"amount":    100.5,
-		"priceEth":  0.01,
+		"projectId":    projectID,
+		"tokenId":      "0",
+		"amount":       100.5,
+		"price":        0.01,
+		"paymentToken": "USDC",
 	}
 	jsonBody := itesting.MustMarshalJSON(t, payload)
 
@@ -129,9 +130,10 @@ func TestMarketplace_BuyListing(t *testing.T) {
 	syncUser(t, e, "buyer@example.com", buyerID)
 
 	// Buy listing (AS BUYER)
+	// Use a valid-looking Solana Base58 signature (88 chars) and pubkey (44 chars)
 	payload := map[string]interface{}{
-		"txHash":      "0x123",
-		"buyerWallet": "0xabc",
+		"txHash":      "5wHGgE4VKmKkEhVz4cWMzjF5cPi9aRtEaNHCqZPXvBNmBxRY3uEhKu1VHDNgPYmVNpn5a1Rq9fLc7ZvPk8R8aBC",
+		"buyerWallet": "DRpbCBMxVnDK7maPGBPE3xUcYBxQvNFiSwNjjJJYrTw1",
 		"amount":      10.0,
 	}
 	buyBody := itesting.MustMarshalJSON(t, payload)
@@ -159,10 +161,11 @@ func TestMarketplace_CannotListUndeployedProject(t *testing.T) {
 
 	// Try to create listing
 	payload := map[string]interface{}{
-		"projectId": projectID,
-		"tokenId":   0,
-		"amount":    100.5,
-		"priceEth":  0.01,
+		"projectId":    projectID,
+		"tokenId":      "0",
+		"amount":       100.5,
+		"price":        0.01,
+		"paymentToken": "USDC",
 	}
 	jsonBody := itesting.MustMarshalJSON(t, payload)
 
@@ -236,24 +239,25 @@ func createAndDeployProject(t *testing.T, srv *server.Server, e *echo.Echo, user
 
 	projectID := createProject(t, e, userID)
 
-	// Deploy the project (set contract address)
-	contractAddr := "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"
+	// Deploy the project (set mint address — Solana Base58 pubkey)
+	mintAddr := "DRpbCBMxVnDK7maPGBPE3xUcYBxQvNFiSwNjjJJYrTw1"
 	_, err := srv.DB.Pool.Exec(context.Background(),
-		"UPDATE projects SET status = $1, contract_address = $2 WHERE id = $3",
-		project.ProjectStatusDeployed, contractAddr, projectID)
+		"UPDATE projects SET status = $1, mint_address = $2 WHERE id = $3",
+		project.ProjectStatusDeployed, mintAddr, projectID)
 	require.NoError(t, err, "Failed to deploy project")
 
 	return projectID
 }
 
-func createListing(t *testing.T, e *echo.Echo, projectID string, amount float64, priceEth float64, userID string) string {
+func createListing(t *testing.T, e *echo.Echo, projectID string, amount float64, price float64, userID string) string {
 	t.Helper()
 
 	payload := map[string]interface{}{
-		"projectId": projectID,
-		"tokenId":   0,
-		"amount":    amount,
-		"priceEth":  priceEth,
+		"projectId":    projectID,
+		"tokenId":      "0",
+		"amount":       amount,
+		"price":        price,
+		"paymentToken": "USDC",
 	}
 	jsonBody := itesting.MustMarshalJSON(t, payload)
 

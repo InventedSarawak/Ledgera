@@ -61,7 +61,7 @@ type UpdateProjectRequest struct {
 	Title           *string   `json:"title" form:"title" validate:"omitempty,min=3,max=150"`
 	Description     *string   `json:"description" form:"description" validate:"omitempty,min=10"`
 	LocationPolygon *string   `json:"locationPolygon" form:"locationPolygon" validate:"omitempty"`
-	ContractAddress *string   `json:"contractAddress" form:"contractAddress" validate:"omitempty,eth_addr"`
+	MintAddress     *string   `json:"mintAddress" form:"mintAddress" validate:"omitempty,solana_pubkey"` // Solana Base58 public key
 	Area            *float64  `json:"area" form:"area" validate:"omitempty,gt=0"`
 	Status          *string   `json:"status" form:"status" validate:"omitempty,oneof=DRAFT PENDING APPROVED DEPLOYED REJECTED"`
 	CarbonAmount    *float64  `json:"carbonAmount" form:"carbonAmount" validate:"omitempty,gt=0"`
@@ -69,6 +69,7 @@ type UpdateProjectRequest struct {
 
 func (r *UpdateProjectRequest) Validate() error {
 	validate := validator.New()
+	RegisterSolanaValidators(validate)
 	return validate.Struct(r)
 }
 

@@ -172,7 +172,7 @@ func (h *ProjectHandler) Update(c echo.Context) error {
 				LocationPolygon: polygonPtr,
 				Area:            req.Area,
 				CarbonAmount:    req.CarbonAmount,
-				ContractAddress: req.ContractAddress,
+				MintAddress:     req.MintAddress,
 				Status:          statusPtr,
 			}
 

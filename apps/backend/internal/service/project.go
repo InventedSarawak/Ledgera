@@ -304,19 +304,51 @@ func (s *ProjectService) Approve(ctx echo.Context, id string, adminID string) (*
 		return nil, err
 	}
 
-	// Trigger blockchain deployment
+	// Directly deploy and mint tokens
 	if s.blockchainService != nil {
-		go func() {
-			// Deploy in background to avoid blocking the HTTP response
-			if err := s.blockchainService.DeployProject(ctx, id); err != nil {
-				logger.Error().
-					Err(err).
-					Str("project_id", id).
-					Msg("failed to deploy project token in background")
-				// Note: In production, you might want to implement a retry mechanism
-				// or update the project status to indicate deployment failure
-			}
-		}()
+		// Deploy now synchronously
+		if err := s.blockchainService.DeployProject(ctx, id); err != nil {
+			logger.Error().
+				Err(err).
+				Str("project_id", id).
+				Msg("failed to deploy project contract")
+			return updated, nil
+		}
+		
+		// Mint Project Tokens synchronously
+		if err := s.blockchainService.MintProjectTokens(ctx.Request().Context(), id, existing.CarbonAmount); err != nil {
+			logger.Error().
+				Err(err).
+				Str("project_id", id).
+				Msg("failed to mint project tokens")
+			return updated, nil
+		}
+
+		// Update Status to DEPLOYED
+		updated, err = s.repo.UpdateStatus(ctx.Request().Context(), id, project.ProjectStatusDeployed)
+		if err != nil {
+			logger.Error().
+				Err(err).
+				Str("project_id", id).
+				Msg("failed to update project status to deployed")
+			return updated, nil
+		}
+
+		// Create listing
+		zeroTokenID := "0"
+		req := validation.CreateListingRequest{
+			ProjectID:    id,
+			TokenID:      &zeroTokenID,
+			Amount:       existing.CarbonAmount,
+			Price:        0.1,
+			PaymentToken: "USDC",
+		}
+		if _, err := s.marketplaceService.CreateListing(ctx, req, existing.SupplierID); err != nil {
+			logger.Error().
+				Err(err).
+				Str("project_id", id).
+				Msg("failed to create marketplace listing")
+		}
 	} else {
 		logger.Warn().Msg("blockchain service not available, skipping token deployment")
 	}
@@ -411,8 +443,10 @@ func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID s
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("project status is %s, must be APPROVED to mint", p.Status))
 	}
 
+	// fmt.Println("idk idk idk")
+
 	// Ensure contract is deployed (in case background job failed or hasn't run)
-	if p.ContractAddress == nil || *p.ContractAddress == "" {
+	if p.MintAddress == nil || *p.MintAddress == "" {
 		// Deploy now synchronously
 		if err := s.blockchainService.DeployProject(ctx, projectID); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to deploy project contract").SetInternal(err)
@@ -432,12 +466,13 @@ func (s *ProjectService) MintTokens(ctx echo.Context, projectID string, userID s
 	// We list the entire minted amount at 0.1 ETH per tonne of CO2
 	// This is a temporary hardcoded price as per user request
 	// Pass TokenID 0 for the initial supply listing.
-	zeroTokenID := 0
+	zeroTokenID := "0"
 	req := validation.CreateListingRequest{
-		ProjectID: projectID,
-		TokenID:   &zeroTokenID,
-		Amount:    p.CarbonAmount,
-		PriceETH:  0.1,
+		ProjectID:    projectID,
+		TokenID:      &zeroTokenID,
+		Amount:       p.CarbonAmount,
+		Price:        0.1,
+		PaymentToken: "USDC",
 	}
 	if _, err := s.marketplaceService.CreateListing(ctx, req, userID); err != nil {
 		// Log the error but don't fail the request completely since tokens are already minted

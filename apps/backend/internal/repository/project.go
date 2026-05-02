@@ -91,7 +91,7 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id string) (*project.P
             id, supplier_id, title, description, image_url, audit_report_url,
             ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
-            contract_address, token_symbol, 
+            mint_address, token_symbol, 
             status, created_at, updated_at
         FROM projects
         WHERE id = @id
@@ -107,7 +107,7 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id string) (*project.P
 		&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
 		&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 		&p.CarbonAmount, &p.PricePerTonne,
-		&p.ContractAddress, &p.TokenSymbol,
+		&p.MintAddress, &p.TokenSymbol,
 		&p.Status, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if locBytes != nil {
@@ -138,7 +138,7 @@ func (r *ProjectRepository) ListBySupplierPaginated(ctx context.Context, supplie
             id, supplier_id, title, description, image_url, audit_report_url,
             ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
-            contract_address, token_symbol, 
+            mint_address, token_symbol, 
             status, created_at, updated_at
         FROM projects
         WHERE supplier_id = @supplier_id
@@ -166,7 +166,7 @@ func (r *ProjectRepository) ListBySupplierPaginated(ctx context.Context, supplie
 			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
 			&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 			&p.CarbonAmount, &p.PricePerTonne,
-			&p.ContractAddress, &p.TokenSymbol,
+			&p.MintAddress, &p.TokenSymbol,
 			&p.Status, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
@@ -201,7 +201,7 @@ func (r *ProjectRepository) ListByStatusPaginated(ctx context.Context, status pr
             id, supplier_id, title, description, image_url, audit_report_url,
             ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
-            contract_address, token_symbol,
+            mint_address, token_symbol,
             status, created_at, updated_at
         FROM projects
         WHERE status = @status
@@ -229,7 +229,7 @@ func (r *ProjectRepository) ListByStatusPaginated(ctx context.Context, status pr
 			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
 			&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 			&p.CarbonAmount, &p.PricePerTonne,
-			&p.ContractAddress, &p.TokenSymbol,
+			&p.MintAddress, &p.TokenSymbol,
 			&p.Status, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
@@ -257,7 +257,7 @@ func (r *ProjectRepository) ListBySupplier(ctx context.Context, supplierID strin
             id, supplier_id, title, description, image_url, audit_report_url,
             ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
-            contract_address, token_symbol, 
+            mint_address, token_symbol, 
             status, created_at, updated_at
         FROM projects
         WHERE supplier_id = @supplier_id
@@ -284,7 +284,7 @@ func (r *ProjectRepository) ListBySupplier(ctx context.Context, supplierID strin
 			&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
 			&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 			&p.CarbonAmount, &p.PricePerTonne,
-			&p.ContractAddress, &p.TokenSymbol,
+			&p.MintAddress, &p.TokenSymbol,
 			&p.Status, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
@@ -310,7 +310,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
             location_polygon = COALESCE(ST_GeomFromGeoJSON(@location_polygon), location_polygon),
             area = COALESCE(@area, area),
             carbon_amount_total = COALESCE(@carbon_amount_total, carbon_amount_total),
-            contract_address = COALESCE(@contract_address, contract_address),
+            mint_address = COALESCE(@mint_address, mint_address),
             token_symbol = COALESCE(@token_symbol, token_symbol),
             status = COALESCE(@status, status),
             updated_at = NOW()
@@ -319,7 +319,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
             id, supplier_id, title, description, image_url, audit_report_url,
             ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
-            contract_address, token_symbol,
+            mint_address, token_symbol,
             status, created_at, updated_at
     `
 
@@ -338,7 +338,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
 		"location_polygon":    locPol,
 		"area":                payload.Area,
 		"carbon_amount_total": payload.CarbonAmount,
-		"contract_address":    payload.ContractAddress,
+		"mint_address":        payload.MintAddress,
 		"token_symbol":        payload.TokenSymbol,
 		"status":              payload.Status,
 	}
@@ -349,7 +349,7 @@ func (r *ProjectRepository) Update(ctx context.Context, id string, payload proje
 		&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
 		&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 		&p.CarbonAmount, &p.PricePerTonne,
-		&p.ContractAddress, &p.TokenSymbol,
+		&p.MintAddress, &p.TokenSymbol,
 		&p.Status, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if locBytes != nil {
@@ -386,7 +386,7 @@ func (r *ProjectRepository) UpdateStatus(ctx context.Context, id string, status 
             id, supplier_id, title, description, image_url, audit_report_url,
             ST_AsGeoJSON(location_polygon), location_lat, location_lng, area, 
             carbon_amount_total, price_per_tonne,
-            contract_address, token_symbol,
+            mint_address, token_symbol,
             status, created_at, updated_at
     `
 
@@ -401,7 +401,7 @@ func (r *ProjectRepository) UpdateStatus(ctx context.Context, id string, status 
 		&p.ID, &p.SupplierID, &p.Title, &p.Description, &p.ImageURL, &p.AuditReportURL,
 		&locBytes, &p.Latitude, &p.Longitude, &p.Area,
 		&p.CarbonAmount, &p.PricePerTonne,
-		&p.ContractAddress, &p.TokenSymbol,
+		&p.MintAddress, &p.TokenSymbol,
 		&p.Status, &p.CreatedAt, &p.UpdatedAt,
 	)
 
